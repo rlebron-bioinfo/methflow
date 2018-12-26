@@ -1,0 +1,6 @@
+.nextflow*
+work/
+data/
+results/
+tests/
+.DS_Store

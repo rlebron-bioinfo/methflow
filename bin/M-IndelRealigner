@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+
+import pysam
+import logging, click
+import os, sys
+import shlex, shutil
+from subprocess import Popen, PIPE
+
+prog = 'M-IndelRealigner'
+version = '0.0.0'
+
+logger = logging.getLogger(prog)
+logger.setLevel(logging.DEBUG)
+format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+formatter = logging.Formatter(format)
+
+logstream = logging.StreamHandler()
+logstream.setLevel(logging.DEBUG)
+logstream.setFormatter(formatter)
+logger.addHandler(logstream)
+
+logfile = logging.FileHandler('M-IndelRealigner.log')
+logfile.setLevel(logging.DEBUG)
+logfile.setFormatter(formatter)
+logger.addHandler(logfile)
+
+
+@click.command()
+@click.option('-R', 'genome', required=True, prompt=False, type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True, resolve_path=True))
+@click.option('-I', 'inbam', required=True, prompt=False, type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True))
+@click.option('-T', 'temp', required=True, prompt=False, type=click.Path(exists=False, writable=True, resolve_path=True))
+@click.option('-O', 'outbam', required=True, prompt=False, type=click.Path(exists=False, writable=True, resolve_path=True))
+@click.option('-C', 'cores', default=os.cpu_count(), type=click.IntRange(min=0, max=None, clamp=False))
+@click.version_option(version=version)
+def main(genome, inbam, temp, outbam, cores):
+    R, I, T, O, C = genome, inbam, temp, outbam, cores
+    os.makedirs(T)
+    logger.info(f'temporary folder created: {T}')
+
+    logger.info(f'adding read groups')
+    cmd = f'samtools index {I}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    T_bamRG = os.path.join(T, os.path.splitext(os.path.basename(I))[0] + '_RG.bam')
+    cmd = f'picard AddOrReplaceReadGroups I={I} O={T_bamRG} RGID=1 RGLB=1 RGPL=1 RGPU=1 RGSM=1'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'samtools index {T_bamRG}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    logger.info(f'converting forward reads: C -> T')
+    T_convBam_1 = os.path.join(T, os.path.splitext(os.path.basename(I))[0] + '_conv_1.bam')
+    infile = pysam.AlignmentFile(T_bamRG, 'rb')
+    outfile = pysam.AlignmentFile(T_convBam_1, 'wb', template=infile)
+    for read in infile.fetch():
+        if not read.is_reverse:
+            SEQ = read.query_sequence.upper()
+            QUAL = read.qual
+            XM = read.get_tag('XM')
+            read.query_sequence = SEQ.replace('C', 'T')
+            XM = f'{SEQ}#{XM}'
+            read.set_tag('XM', XM)
+            read.qual = QUAL
+            outfile.write(read)
+    infile.close()
+    outfile.close()
+
+    logger.info(f'converting reverse reads: G -> A')
+    T_convBam_2 = os.path.join(T, os.path.splitext(os.path.basename(I))[0] + '_conv_2.bam')
+    infile = pysam.AlignmentFile(T_bamRG, 'rb')
+    outfile = pysam.AlignmentFile(T_convBam_2, 'wb', template=infile)
+    for read in infile.fetch():
+        if read.is_reverse:
+            SEQ = read.query_sequence.upper()
+            QUAL = read.qual
+            XM = read.get_tag('XM')
+            read.query_sequence = SEQ.replace('G', 'A')
+            XM = f'{SEQ}#{XM}'
+            read.set_tag('XM', XM)
+            read.qual = QUAL
+            outfile.write(read)
+    infile.close()
+    outfile.close()
+
+    logger.info(f'realigning forward reads')
+    genome_CT = os.path.join(R, 'Bisulfite_Genome/CT_conversion/genome_mfa.CT_conversion.fa')
+    genome_CT_temp = os.path.join(T, 'CT.fa')
+    shutil.copy2(genome_CT, genome_CT_temp)
+    genome_CT = genome_CT_temp
+    cmd = f'sed -i "s/_CT_converted//g" {genome_CT}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'samtools faidx {genome_CT}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    genome_CT_dict = genome_CT.replace('.fa', '.dict')
+    cmd = f'picard CreateSequenceDictionary R={genome_CT} O={genome_CT_dict}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    T_targets_1 = os.path.join(T, os.path.splitext(os.path.basename(I))[0] + '_targets_1.intervals')
+    T_realignBam_1 = os.path.join(T, os.path.splitext(os.path.basename(I))[0] + '_realign_1.bam')
+    cmd = f'samtools index {T_convBam_1}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'gatk3 -T RealignerTargetCreator -R {genome_CT} -I {T_convBam_1} -o {T_targets_1} -S LENIENT -nt {C} -nct 1'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'gatk3 -T IndelRealigner -R {genome_CT} -I {T_convBam_1} -targetIntervals {T_targets_1} -o {T_realignBam_1} -S LENIENT -nt {C} -nct 1'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'samtools index {T_realignBam_1}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    logger.info(f'realigning reverse reads')
+    genome_GA = os.path.join(R, 'Bisulfite_Genome/GA_conversion/genome_mfa.GA_conversion.fa')
+    genome_GA_temp = os.path.join(T, 'GA.fa')
+    shutil.copy2(genome_GA, genome_GA_temp)
+    genome_GA = genome_GA_temp
+    cmd = f'sed -i "s/_GA_converted//g" {genome_GA}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'samtools faidx {genome_GA}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    genome_GA_dict = genome_GA.replace('.fa', '.dict')
+    cmd = f'picard CreateSequenceDictionary R={genome_GA} O={genome_GA_dict}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    T_targets_2 = os.path.join(T, os.path.splitext(os.path.basename(I))[0] + '_targets_2.intervals')
+    T_realignBam_2 = os.path.join(T, os.path.splitext(os.path.basename(I))[0] + '_realign_2.bam')
+    cmd = f'samtools index {T_convBam_2}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'gatk3 -T RealignerTargetCreator -R {genome_GA} -I {T_convBam_2} -o {T_targets_2} -S LENIENT -nt {C} -nct 1'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'gatk3 -T IndelRealigner -R {genome_GA} -I {T_convBam_2} -targetIntervals {T_targets_2} -o {T_realignBam_2} -S LENIENT -nt {C} -nct 1'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'samtools index {T_realignBam_2}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    logger.info(f'merging forward and reverse realigned BAM files')
+    T_merged_bam = os.path.join(T, os.path.splitext(os.path.basename(I))[0] + '_merged.bam') 
+    cmd = f'samtools merge {T_merged_bam} {T_realignBam_1} {T_realignBam_2}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = f'samtools index {T_merged_bam}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    logger.info(f'recovering original sequence / undoing C -> T and G -> A conversions')
+    infile = pysam.AlignmentFile(T_merged_bam, 'rb')
+    outfile = pysam.AlignmentFile(O, 'wb', template=infile)
+    for read in infile.fetch():
+        XM = read.get_tag('XM')
+        SEQ, XM = XM.split('#')
+        QUAL = read.qual
+        read.query_sequence = SEQ
+        read.set_tag('XM', XM)
+        read.qual = QUAL
+        outfile.write(read)
+    infile.close()
+    outfile.close()
+    cmd = f'samtools index {O}'
+    exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    shutil.rmtree(T)
+    logger.info(f'temporary folder removed')
+
+
+def exec_cmd(cmd, stdin, stdout, stderr):
+    p = Popen(shlex.split(cmd), stdin=stdin, stdout=stdout, stderr=stderr)
+    out, err = p.communicate()
+    if p.returncode != 0:
+        logger.error(f'error executing command: {cmd}')
+        logger.error(err)
+        abort()
+
+
+def abort():
+    logger.error(f'aborting program...')
+    sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
