@@ -110,6 +110,7 @@ summary['Trim R1'] = params.clip_r1
 summary['Trim R2'] = params.clip_r2
 summary["Trim 3' R1"] = params.three_prime_clip_r1
 summary["Trim 3' R2"] = params.three_prime_clip_r2
+summary['Trimming']  = params.notrim ? 'No' : 'Yes'
 summary['Deduplication']  = params.nodedup || params.rrbs ? 'No' : 'Yes'
 summary['Indel Realignment']  = params.norealign ? 'No' : 'Yes'
 summary['M-plot Analysis']  = params.nombias ? 'No' : 'Yes'
@@ -120,6 +121,7 @@ if(params.sra)  summary['Save SRA files'] = params.saveSRA ? 'Yes' : 'No'
 summary['Save Reference'] = params.saveReference ? 'Yes' : 'No'
 summary['Save Trimmed']   = params.saveTrimmed ? 'Yes' : 'No'
 summary['Save Unmapped']  = params.unmapped ? 'Yes' : 'No'
+summary['Save Ambiguous']  = params.ambiguous ? 'Yes' : 'No'
 summary['Save Intermeds'] = params.saveAlignedIntermediates ? 'Yes' : 'No'
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
@@ -176,7 +178,7 @@ if(params.reads){
 }
 
 if (params.sra && !params.singleEnd) {
-    process downloadSRA {
+    process downloadSRA_paired {
         publishDir path: { params.saveSRA ? "${params.outdir}/SRA" : params.outdir },
                    saveAs: { params.saveSRA ? it : null }, mode: 'copy'
 
@@ -192,7 +194,7 @@ if (params.sra && !params.singleEnd) {
         """
     }
 } else if (params.sra && params.singleEnd) {
-    process downloadSRA {
+    process downloadSRA_single {
         publishDir path: { params.saveSRA ? "${params.outdir}/SRA" : params.outdir },
                    saveAs: { params.saveSRA ? it : null }, mode: 'copy'
 
@@ -307,7 +309,8 @@ process bismark_align {
     tag "$name"
     publishDir "${params.outdir}/bismark_alignments", mode: 'copy',
         saveAs: {filename ->
-            if (filename.indexOf(".fq.gz") > 0) "unmapped/$filename"
+            if (filename.indexOf("*unmapped_reads*") > 0) "unmapped/$filename"
+            else if (filename.indexOf("*ambiguous_reads*") > 0) "ambiguous/$filename"
             else if (filename.indexOf(".bam") == -1) "logs/$filename"
             else params.saveAlignedIntermediates ? filename : null
         }
@@ -319,12 +322,14 @@ process bismark_align {
     output:
     file "*.bam" into bam_aligned_1, bam_aligned_2 
     file "*report.txt" into bismark_align_log_1, bismark_align_log_2, bismark_align_log_3  
-    if(params.unmapped){ file "*.fq.gz" into bismark_unmapped }
+    if(params.unmapped){ file "*unmapped_reads*" into bismark_unmapped }
+    if(params.ambiguous){ file "*ambiguous_reads*" into bismark_ambiguous }
 
     script:
     pbat = params.pbat ? "--pbat" : ''
     non_directional = params.single_cell || params.zymo || params.non_directional ? "--non_directional" : ''
     unmapped = params.unmapped ? "--unmapped" : ''
+    ambiguous = params.ambiguous ? "--ambiguous" : ''
     mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
     multicore = ''
     if (task.cpus){
@@ -353,14 +358,14 @@ process bismark_align {
     if (params.singleEnd) {
         """
         bismark \\
-            --bam $pbat $non_directional $unmapped $mismatches $multicore \\
+            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
             --genome $index \\
             $reads
         """
     } else {
         """
         bismark \\
-            --bam $pbat $non_directional $unmapped $mismatches $multicore \\
+            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
             --genome $index \\
             -1 ${reads[0]} \\
             -2 ${reads[1]}
