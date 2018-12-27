@@ -1,4 +1,4 @@
-From:continuumio/miniconda3:latest
+From:continuumio/miniconda3:4.5.11
 Bootstrap:docker
 
 %labels
@@ -16,6 +16,7 @@ Bootstrap:docker
 %post
     /usr/bin/apt-get update
     /usr/bin/apt-get install -y procps
+    /bin/rm -rf /var/lib/apt/lists/*
     /usr/bin/apt-get clean -y
     /opt/conda/bin/conda env update -n root -f /environment.yml
     /opt/conda/bin/conda install -c conda-forge ncurses=6.1

@@ -8,10 +8,10 @@ versions = {k:f'<span style="color:#999999;\">v{v}</span>' for k,v in versions}
 
 print ('''
 id: 'software_versions'
-section_name: 'nf-core/methylseq Software Versions'
-section_href: 'https://github.com/nf-core/methylseq'
+section_name: 'MethFlow Software Versions'
+section_href: 'https://github.com/rlebron-bioinfo/methflow'
 plot_type: 'html'
-description: 'are collected at run time from the software output.'
+description: 'are collected from environment.yml'
 data: |
     <dl class="dl-horizontal">
 ''')
