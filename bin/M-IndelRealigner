@@ -99,7 +99,7 @@ def main(genome, inbam, temp, outbam, cores):
     exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     cmd = f'gatk3 -T RealignerTargetCreator -R {genome_CT} -I {T_convBam_1} -o {T_targets_1} -S LENIENT -nt {C} -nct 1'
     exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    cmd = f'gatk3 -T IndelRealigner -R {genome_CT} -I {T_convBam_1} -targetIntervals {T_targets_1} -o {T_realignBam_1} -S LENIENT -nt {C} -nct 1'
+    cmd = f'gatk3 -T IndelRealigner -R {genome_CT} -I {T_convBam_1} -targetIntervals {T_targets_1} -o {T_realignBam_1} -S LENIENT'
     exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     cmd = f'samtools index {T_realignBam_1}'
     exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -123,7 +123,7 @@ def main(genome, inbam, temp, outbam, cores):
     exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     cmd = f'gatk3 -T RealignerTargetCreator -R {genome_GA} -I {T_convBam_2} -o {T_targets_2} -S LENIENT -nt {C} -nct 1'
     exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    cmd = f'gatk3 -T IndelRealigner -R {genome_GA} -I {T_convBam_2} -targetIntervals {T_targets_2} -o {T_realignBam_2} -S LENIENT -nt {C} -nct 1'
+    cmd = f'gatk3 -T IndelRealigner -R {genome_GA} -I {T_convBam_2} -targetIntervals {T_targets_2} -o {T_realignBam_2} -S LENIENT'
     exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     cmd = f'samtools index {T_realignBam_2}'
     exec_cmd(cmd=cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
