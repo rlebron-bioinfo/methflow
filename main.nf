@@ -322,8 +322,8 @@ process bismark_align {
     output:
     file "*.bam" into bam_aligned_1, bam_aligned_2 
     file "*report.txt" into bismark_align_log_1, bismark_align_log_2, bismark_align_log_3  
-    if(params.unmapped){ file "*unmapped_reads*" into bismark_unmapped }
-    if(params.ambiguous){ file "*ambiguous_reads*" into bismark_ambiguous }
+    file "*unmapped_reads*" into bismark_unmapped
+    file "*ambiguous_reads*" into bismark_ambiguous
 
     script:
     pbat = params.pbat ? "--pbat" : ''
