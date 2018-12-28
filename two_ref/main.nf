@@ -176,8 +176,8 @@ try {
             "============================================================"
 }
 
-fasta_1.into { fasta_1A; fasta_1B; fasta_1C; fasta_1D }
-fasta_2.into { fasta_2A; fasta_2B; fasta_2C; fasta_2D }
+fasta_1.into { fasta_1A; fasta_1B; fasta_1C }
+fasta_2.into { fasta_2A; fasta_2B; fasta_2C }
 
 /*
  * STEP 0 - Get FASTQ files
@@ -308,10 +308,10 @@ if(params.notrim){
 }
 
 /*
- * STEP 4 - Align with Bismark
+ * STEP 4A - First Align with Bismark
  */
 
-process bismark_align {
+process bismark_align_1 {
     tag "$name"
     publishDir "${params.outdir}/first_bismark_alignments", mode: 'copy',
         saveAs: {filename ->
@@ -329,16 +329,14 @@ process bismark_align {
     file "*.bam" into bam_aligned_1A, bam_aligned_1B 
     file "*report.txt" into bismark_align_log_1A, bismark_align_log_1B, bismark_align_log_1C  
 
-/// TO BE CONTINUE...
-
-    file "*unmapped_reads*" into bismark_unmapped
-    file "*ambiguous_reads*" into bismark_ambiguous
+    file "*unmapped_reads_{1,2}*" into bismark_unmapped
+    file "*ambiguous_reads_{1,2}*" into bismark_ambiguous
 
     script:
     pbat = params.pbat ? "--pbat" : ''
     non_directional = params.single_cell || params.zymo || params.non_directional ? "--non_directional" : ''
-    unmapped = params.unmapped ? "--unmapped" : ''
-    ambiguous = params.ambiguous ? "--ambiguous" : ''
+    unmapped = "--unmapped"
+    ambiguous = "--ambiguous"
     mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
     multicore = ''
     if (task.cpus){
@@ -382,6 +380,88 @@ process bismark_align {
     }
 }
 
+Channel
+.fromFilePairs( bismark_unmapped, size: params.singleEnd ? 1 : 2 )
+.into { bismark_unmapped_A }
+
+Channel
+.fromFilePairs( bismark_ambiguous, size: params.singleEnd ? 1 : 2 )
+.into { bismark_ambiguous_A }
+
+/*
+ * STEP 4B - Second Align with Bismark
+ */
+
+process bismark_align_2 {
+    tag "$name"
+    publishDir "${params.outdir}/second_bismark_alignments", mode: 'copy',
+        saveAs: {filename ->
+            if (filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
+            else if (filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
+            else if (filename.indexOf(".fq.gz") == -1 && filename.indexOf(".bam") == -1) "logs/$filename"
+            else params.saveAlignedIntermediates ? filename : null
+        }
+
+    input:
+    set val(name), file(unmapped_reads) from bismark_unmapped_A
+    set val(name), file(ambiguous_reads) from bismark_ambiguous_A
+    file index from bismark_index_2A.collect()
+
+    output:
+    file "*.bam" into bam_aligned_2A, bam_aligned_2B 
+    file "*report.txt" into bismark_align_log_2A, bismark_align_log_2B, bismark_align_log_2C  
+
+    file "*unmapped_reads_{1,2}*" into bismark_unmapped_B
+    file "*ambiguous_reads_{1,2}*" into bismark_ambiguous_B
+
+    script:
+    pbat = params.pbat ? "--pbat" : ''
+    non_directional = params.single_cell || params.zymo || params.non_directional ? "--non_directional" : ''
+    unmapped = "--unmapped"
+    ambiguous = "--ambiguous"
+    mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
+    multicore = ''
+    if (task.cpus){
+        // Numbers based on recommendation for human genome
+        if(params.single_cell || params.zymo || params.non_directional){
+            cpu_per_multicore = 5
+            mem_per_multicore = (18.GB).toBytes()
+        } else {
+            cpu_per_multicore = 3
+            mem_per_multicore = (13.GB).toBytes()
+        }
+        // How many multicore splits can we afford with the cpus we have?
+        ccore = ((task.cpus as int) / cpu_per_multicore) as int
+        // Check that we have enough memory, assuming 13GB memory per instance
+        try {
+            tmem = (task.memory as nextflow.util.MemoryUnit).toBytes()
+            mcore = (tmem / mem_per_multicore) as int
+            ccore = Math.min(ccore, mcore)
+        } catch (all) {
+            log.debug "Not able to define bismark align multicore based on available memory"
+        }
+        if(ccore > 1){
+            multicore = "--multicore $ccore"
+        }
+    }
+    if (params.singleEnd) {
+        """
+        bismark \\
+            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
+            --genome $index \\
+            $unmapped_reads $ambiguous_reads
+        """
+    } else {
+        """
+        bismark \\
+            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
+            --genome $index \\
+            -1 ${unmapped_reads[0]} ${ambiguous_reads[0]} \\
+            -2 ${unmapped_reads[1]} ${ambiguous_reads[0]}
+        """
+    }
+}
+
 /*
  * STEP 5 - Bismark Sample Report
  */
@@ -391,7 +471,8 @@ process bismark_report {
     publishDir "${params.outdir}/bismark_reports", mode: 'copy'
 
     input:
-    file bismark_align_log_1
+    file bismark_align_log_1A
+    file bismark_align_log_2A
 
     output:
     file '*{html,txt}' into bismark_reports_results
@@ -399,7 +480,7 @@ process bismark_report {
     script:
     name = bismark_align_log_1.toString() - ~/(_R1)?(_trimmed|_val_1).+$/
     """
-    bismark2report --alignment_report $bismark_align_log_1
+    bismark2report --alignment_report $bismark_align_log_1A $bismark_align_log_2A
     """
 }
 
@@ -412,8 +493,10 @@ process bismark_summary {
     publishDir "${params.outdir}/bismark_summary", mode: 'copy'
 
     input:
-    file ('*') from bam_aligned_1.collect()
-    file ('*') from bismark_align_log_2.collect()
+    file ('*') from bam_aligned_1A.collect()
+    file ('*') from bam_aligned_2A.collect()
+    file ('*') from bismark_align_log_1B.collect()
+    file ('*') from bismark_align_log_2B.collect()
 
     output:
     file '*{html,txt}' into bismark_summary_results
@@ -437,7 +520,8 @@ process samtools_sort {
         }
 
     input:
-    file bam from bam_aligned_2
+    file bam1 from bam_aligned_1B
+    file bam2 from bam_aligned_2B
 
     output:
     file "${bam.baseName}.sorted.bam" into bam_sorted
@@ -451,7 +535,7 @@ process samtools_sort {
         -n \\
         -m ${task.memory.toBytes() / task.cpus} \\
         -@ ${task.cpus} \\
-        $bam \\
+        $bam1 $bam2 \\
         > ${bam.baseName}.sorted.bam
     samtools index ${bam.baseName}.sorted.bam
     samtools flagstat ${bam.baseName}.sorted.bam > ${bam.baseName}_flagstat.txt
@@ -545,7 +629,7 @@ if (params.nodedup || params.rrbs) {
 }
 
 /*
- * STEP 10 - Local indel realignment
+ * STEP 10 - Local indel realignment ===============================>>>>>>>>>>>>> *************
  */
 
 if (params.norealign) {
@@ -563,7 +647,7 @@ if (params.norealign) {
         input:
         file bam from bam_dedup
         file bam_index from bam_dedup_index
-        file genome from bismark_index_2
+        file genome from bismark_index_2 // ***********************
 
         output:
         file "${bam.baseName}.realign.bam" into bam_final
@@ -687,7 +771,7 @@ if (params.nombias) {
 }
 
 /*
- * STEP 13 - MethylExtract
+ * STEP 13 - MethylExtract ===============================>>>>>>>>>>>>> *************
  */
 
 process MethylExtract {
@@ -697,7 +781,7 @@ process MethylExtract {
     input:
     file bam from bam_final_3
     file bam_index from bam_final_index_3
-    file fasta from fasta_3
+    file fasta from fasta_3 // ***********************
 
     output:
     file "*{output,vcf}" into methylextract_results
@@ -766,7 +850,8 @@ process multiqc {
     file multiqc_config
     file ('fastqc/*') from fastqc_results.toList()
     file ('trimgalore/*') from trimgalore_results.toList()
-    file ('bismark/*') from bismark_align_log_3.toList()
+    file ('bismark/*') from bismark_align_log_1C.toList()
+    file ('bismark/*') from bismark_align_log_2C.toList()
     file ('bismark/*') from bismark_reports_results.toList()
     file ('bismark/*') from bismark_summary_results.toList()
     file ('samtools/*') from flagstat_results.flatten().toList()
@@ -784,7 +869,7 @@ process multiqc {
     file '.command.err' into multiqc_stderr
 
     script:
-    rtitle = custom_runName ? "--title \"MethFlow - $custom_runName\"" : ''
+    rtitle = custom_runName ? "--title \"MethFlow.two_ref - $custom_runName\"" : ''
     rfilename = custom_runName ? "--filename " + custom_runName.replaceAll('\\W','_').replaceAll('_+','_') + "_multiqc_report" : ''
     """
     multiqc -f $rtitle $rfilename --config $multiqc_config .
