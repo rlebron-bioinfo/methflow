@@ -18,7 +18,6 @@
 params.name = false
 params.bismark_index = false
 params.fasta = false
-// params.fasta_index = false
 
 // Validate inputs
 if( params.bismark_index ){
