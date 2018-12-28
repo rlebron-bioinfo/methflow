@@ -120,7 +120,6 @@ summary['Save Trimmed']   = params.saveTrimmed ? 'Yes' : 'No'
 summary['Save Unmapped']  = params.unmapped ? 'Yes' : 'No'
 summary['Save Ambiguous'] = params.ambiguous ? 'Yes' : 'No'
 summary['Save Intermeds'] = params.saveAlignedIntermediates ? 'Yes' : 'No'
-summary['Host Name']      = exec("hostname")
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time

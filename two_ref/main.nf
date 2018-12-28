@@ -143,7 +143,6 @@ summary['Save First Reference'] = params.saveReference1 ? 'Yes' : 'No'
 summary['Save Second Reference'] = params.saveReference2 ? 'Yes' : 'No'
 summary['Save Trimmed']   = params.saveTrimmed ? 'Yes' : 'No'
 summary['Save Intermeds'] = params.saveAlignedIntermediates ? 'Yes' : 'No'
-summary['Host Name']      = exec("hostname")
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time
