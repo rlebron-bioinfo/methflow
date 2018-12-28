@@ -629,7 +629,33 @@ if (params.nodedup || params.rrbs) {
 }
 
 /*
- * STEP 10 - Local indel realignment ===============================>>>>>>>>>>>>> *************
+ * STEP 10A - Collapse FASTA files
+ */
+
+process collapseFasta {
+    tag "$name"
+    publishDir path: { params.saveReference2 ? "${params.outdir}/collapsed_reference_genome" : params.outdir },
+        saveAs: { params.saveReference2 ? it : null }, mode: 'copy'
+
+    input:
+    file fasta1 from fasta_1C
+    file fasta2 from fasta_2C
+
+    output:
+    file "${name}.fa" into collapsed_fasta
+    file "BismarkIndex" into collapsed_fasta_index
+
+    script:
+    """
+    cat $fasta1 $fasta2 | fasta_formatter | fasta_formatter -t | sort -k1,1V | uniq | sed 's/^/>/g' | sed -e 's/[\t]/\n/g' > ${name}.fa
+    mkdir BismarkIndex
+    cp ${name}.fa BismarkIndex/
+    bismark_genome_preparation BismarkIndex
+    """
+}
+
+/*
+ * STEP 10B - Local indel realignment
  */
 
 if (params.norealign) {
@@ -647,7 +673,7 @@ if (params.norealign) {
         input:
         file bam from bam_dedup
         file bam_index from bam_dedup_index
-        file genome from bismark_index_2 // ***********************
+        file genome from collapsed_fasta_index
 
         output:
         file "${bam.baseName}.realign.bam" into bam_final
@@ -781,7 +807,7 @@ process MethylExtract {
     input:
     file bam from bam_final_3
     file bam_index from bam_final_index_3
-    file fasta from fasta_3 // ***********************
+    file fasta from collapsed_fasta
 
     output:
     file "*{output,vcf}" into methylextract_results
