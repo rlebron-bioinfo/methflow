@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 /*
 =========================================================================
-                            METHFLOW PIPELINE
+                        METHFLOW PIPELINE - TWO REF
 =========================================================================
   DNA Methylation (BS-Seq) Analysis Pipeline. Started December 2018.
   # Homepage / Documentation
@@ -16,23 +16,42 @@
  */
 
 params.name = false
-params.bismark_index = false
-params.fasta = false
+params.bismark_index_1 = false
+params.fasta_1 = false
+params.bismark_index_2 = false
+params.fasta_2 = false
 
-// Validate inputs
-if( params.bismark_index ){
-    bismark_index = Channel
-        .fromPath(params.bismark_index)
-        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index}" }
+// First ref
+if( params.bismark_index_1 ){
+    bismark_index_1 = Channel
+        .fromPath(params.bismark_index_1)
+        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index_1}" }
 }
-if ( params.fasta ){
-    fasta = Channel
-        .fromPath(params.fasta)
-        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
+if ( params.fasta_1 ){
+    fasta_1 = Channel
+        .fromPath(params.fasta_1)
+        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta_1}" }
 }
 else {
-    exit 1, "No Fasta reference specified! This is required by MethylExtract."
+    exit 1, "No First Fasta reference specified!"
 }
+
+// Second ref
+if( params.bismark_index_2 ){
+    bismark_index_2 = Channel
+        .fromPath(params.bismark_index_2)
+        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index_2}" }
+}
+if ( params.fasta_2 ){
+    fasta_2 = Channel
+        .fromPath(params.fasta_2)
+        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta_2}" }
+}
+else {
+    exit 1, "No Second Fasta reference specified!"
+}
+
+////////////////****************************
 
 multiqc_config = file(params.multiqc_config)
 
