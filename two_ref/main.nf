@@ -50,8 +50,9 @@ if ( params.fasta_2 ){
 else {
     exit 1, "No Second Fasta reference specified!"
 }
-
-////////////////****************************
+if (!params.use_unmapped && !params.use_ambiguous) {
+    exit 1, "Please select unmapped (--use_unmapped), ambiguous (--use_ambiguous) or both!"
+}
 
 multiqc_config = file(params.multiqc_config)
 
@@ -103,17 +104,21 @@ if(params.pbat){
 }
 
 log.info """========================================================================
-MethFlow : DNA Methylation (BS-Seq) Analysis Pipeline v${params.version}
+MethFlow.two_ref : DNA Methylation (BS-Seq) Analysis Pipeline v${params.version}
 ========================================================================"""
 
 def summary = [:]
-summary['Pipeline Name']  = 'MethFlow'
+summary['Pipeline Name']  = 'MethFlow.two_ref'
 summary['Pipeline Version'] = params.version
 summary['Run Name']       = custom_runName ?: workflow.runName
 summary['Reads']          = params.reads
 summary['Data Type']      = params.singleEnd ? 'Single-End' : 'Paired-End'
-if(params.bismark_index) summary['Bismark Index'] = params.bismark_index
-else if(params.fasta)    summary['Fasta Ref'] = params.fasta
+if(params.bismark_index_1) summary['First Bismark Index'] = params.bismark_index_1
+else if(params.fasta_1)    summary['First Fasta Ref'] = params.fasta_1
+if(params.bismark_index_2) summary['Second Bismark Index'] = params.bismark_index_2
+else if(params.fasta_2)    summary['Second Fasta Ref'] = params.fasta_2
+summary['Use Unmapped']  = params.use_unmapped ? 'Yes' : 'No'
+summary['Use Ambiguous'] = params.use_ambiguous ? 'Yes' : 'No'
 if(params.rrbs) summary['RRBS Mode'] = 'On'
 if(params.relaxMismatches) summary['Mismatch Func'] = "L,0,-${params.numMismatches} (Bismark default = L,0,-0.2)"
 if(params.notrim)       summary['Trimming Step'] = 'Skipped'
@@ -134,10 +139,9 @@ summary['M-plot Analysis']  = params.nombias ? 'No' : 'Yes'
 summary['Directional Mode'] = params.single_cell || params.zymo || params.non_directional ? 'No' : 'Yes'
 summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
 if(params.mindepth) summary['Minimum Depth'] = params.mindepth
-summary['Save Reference'] = params.saveReference ? 'Yes' : 'No'
+summary['Save First Reference'] = params.saveReference1 ? 'Yes' : 'No'
+summary['Save Second Reference'] = params.saveReference2 ? 'Yes' : 'No'
 summary['Save Trimmed']   = params.saveTrimmed ? 'Yes' : 'No'
-summary['Save Unmapped']  = params.unmapped ? 'Yes' : 'No'
-summary['Save Ambiguous'] = params.ambiguous ? 'Yes' : 'No'
 summary['Save Intermeds'] = params.saveAlignedIntermediates ? 'Yes' : 'No'
 summary['Host Name']      = exec("hostname")
 summary['Max Memory']     = params.max_memory
@@ -155,7 +159,7 @@ summary['Output dir']     = params.outdir
 summary['Script dir']     = workflow.projectDir
 summary['Config Profile'] = workflow.profile
 log.info summary.collect { k,v -> "${k.padRight(18)}: $v" }.join("\n")
-log.info "========================================="
+log.info "========================================================================"
 
 // Check that Nextflow version is up to date enough
 // try / throw / catch works for NF versions < 0.25 when this was implemented
@@ -172,7 +176,8 @@ try {
             "============================================================"
 }
 
-fasta.into { fasta_1; fasta_2; fasta_3 }
+fasta_1.into { fasta_1A; fasta_1B; fasta_1C; fasta_1D }
+fasta_2.into { fasta_2A; fasta_2B; fasta_2C; fasta_2D }
 
 /*
  * STEP 0 - Get FASTQ files
@@ -188,19 +193,19 @@ if(params.reads){
 }
 
 /*
- * STEP 1 - Build Bismark index
+ * STEP 1A - Build Bismark index 1
  */
 
-if(!params.bismark_index && params.fasta){
-    process makeBismarkIndex {
-        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
-                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
+if(!params.bismark_index_1 && params.fasta_1){
+    process makeBismarkIndex_1 {
+        publishDir path: { params.saveReference1 ? "${params.outdir}/first_reference_genome" : params.outdir },
+                   saveAs: { params.saveReference1 ? it : null }, mode: 'copy'
 
         input:
-        file fasta from fasta_1
+        file fasta from fasta_1A
 
         output:
-        file "BismarkIndex" into bismark_index
+        file "BismarkIndex" into bismark_index_1
 
         script:
         """
@@ -211,7 +216,32 @@ if(!params.bismark_index && params.fasta){
     }
 }
 
-bismark_index.into { bismark_index_1; bismark_index_2 }
+/*
+ * STEP 1B - Build Bismark index 2
+ */
+
+if(!params.bismark_index_2 && params.fasta_2){
+    process makeBismarkIndex_2 {
+        publishDir path: { params.saveReference2 ? "${params.outdir}/second_reference_genome" : params.outdir },
+                   saveAs: { params.saveReference2 ? it : null }, mode: 'copy'
+
+        input:
+        file fasta from fasta_2A
+
+        output:
+        file "BismarkIndex" into bismark_index_2
+
+        script:
+        """
+        mkdir BismarkIndex
+        cp $fasta BismarkIndex/
+        bismark_genome_preparation BismarkIndex
+        """
+    }
+}
+
+bismark_index_1.into { bismark_index_1A; bismark_index_1B }
+bismark_index_2.into { bismark_index_2A; bismark_index_2B }
 
 /*
  * STEP 2 - FastQC
@@ -283,21 +313,24 @@ if(params.notrim){
 
 process bismark_align {
     tag "$name"
-    publishDir "${params.outdir}/bismark_alignments", mode: 'copy',
+    publishDir "${params.outdir}/first_bismark_alignments", mode: 'copy',
         saveAs: {filename ->
-            if (params.unmapped && filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
-            else if (params.ambiguous && filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
+            if (filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
+            else if (filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
             else if (filename.indexOf(".fq.gz") == -1 && filename.indexOf(".bam") == -1) "logs/$filename"
             else params.saveAlignedIntermediates ? filename : null
         }
 
     input:
     set val(name), file(reads) from trimmed_reads
-    file index from bismark_index_1.collect()
+    file index from bismark_index_1A.collect()
 
     output:
-    file "*.bam" into bam_aligned_1, bam_aligned_2 
-    file "*report.txt" into bismark_align_log_1, bismark_align_log_2, bismark_align_log_3  
+    file "*.bam" into bam_aligned_1A, bam_aligned_1B 
+    file "*report.txt" into bismark_align_log_1A, bismark_align_log_1B, bismark_align_log_1C  
+
+/// TO BE CONTINUE...
+
     file "*unmapped_reads*" into bismark_unmapped
     file "*ambiguous_reads*" into bismark_ambiguous
 
