@@ -309,8 +309,8 @@ process bismark_align {
     tag "$name"
     publishDir "${params.outdir}/bismark_alignments", mode: 'copy',
         saveAs: {filename ->
-            if (filename.indexOf("*unmapped_reads*") > 0) "unmapped/$filename"
-            else if (filename.indexOf("*ambiguous_reads*") > 0) "ambiguous/$filename"
+            if (filename.indexOf("*_unmapped_reads_{1,2}.fq.gz") > 0) "unmapped/$filename"
+            else if (filename.indexOf("*_ambiguous_reads_{1,2}.fq.gz") > 0) "ambiguous/$filename"
             else if (filename.indexOf(".bam") == -1) "logs/$filename"
             else params.saveAlignedIntermediates ? filename : null
         }
@@ -439,9 +439,10 @@ process samtools_sort {
     script:
     """
     samtools sort \\
-        $bam \\
+        -n \\
         -m ${task.memory.toBytes() / task.cpus} \\
         -@ ${task.cpus} \\
+        $bam \\
         > ${bam.baseName}.sorted.bam
     samtools index ${bam.baseName}.sorted.bam
     samtools flagstat ${bam.baseName}.sorted.bam > ${bam.baseName}_flagstat.txt
@@ -479,7 +480,7 @@ process samtools_merge {
 
     script:
     """
-    samtools merge ${params.name}.merged.bam $bam
+    samtools merge -n ${params.name}.merged.bam $bam
     samtools index ${params.name}.merged.bam
     """
 }
