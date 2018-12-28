@@ -84,15 +84,14 @@ if(params.pbat){
     params.three_prime_clip_r2 = 0
 }
 
-log.info """=======================================================
+log.info """========================================================================
 MethFlow : DNA Methylation (BS-Seq) Analysis Pipeline v${params.version}
-======================================================="""
+========================================================================"""
 
 def summary = [:]
 summary['Pipeline Name']  = 'MethFlow'
 summary['Pipeline Version'] = params.version
 summary['Run Name']       = custom_runName ?: workflow.runName
-if(params.sra)  summary['SRA'] = params.sra
 summary['Reads']          = params.reads
 summary['Data Type']      = params.singleEnd ? 'Single-End' : 'Paired-End'
 if(params.bismark_index) summary['Bismark Index'] = params.bismark_index
@@ -117,12 +116,12 @@ summary['M-plot Analysis']  = params.nombias ? 'No' : 'Yes'
 summary['Directional Mode'] = params.single_cell || params.zymo || params.non_directional ? 'No' : 'Yes'
 summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
 if(params.mindepth) summary['Minimum Depth'] = params.mindepth
-if(params.sra)  summary['Save SRA files'] = params.saveSRA ? 'Yes' : 'No'
 summary['Save Reference'] = params.saveReference ? 'Yes' : 'No'
 summary['Save Trimmed']   = params.saveTrimmed ? 'Yes' : 'No'
 summary['Save Unmapped']  = params.unmapped ? 'Yes' : 'No'
-summary['Save Ambiguous']  = params.ambiguous ? 'Yes' : 'No'
+summary['Save Ambiguous'] = params.ambiguous ? 'Yes' : 'No'
 summary['Save Intermeds'] = params.saveAlignedIntermediates ? 'Yes' : 'No'
+summary['Host Name']      = exec("hostname")
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time
@@ -166,49 +165,8 @@ if(params.reads){
     .fromFilePairs( params.reads, size: params.singleEnd ? 1 : 2 )
     .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nIf this is single-end data, please specify --singleEnd on the command line." }
     .into { read_files_fastqc; read_files_trimming }
-
-} else if (params.sra) {
-    Channel
-    .fromPath(params.sra)
-    .ifEmpty { exit 1, "SRR list not found: ${params.sra}" }
-    .splitText().map { it -> it.trim() }.set { sra }
-
 } else {
-    exit 1, "Cannot find any FASTQ file. Please use --reads or --sra arguments."
-}
-
-if (params.sra && !params.singleEnd) {
-    process downloadSRA_paired {
-        publishDir path: { params.saveSRA ? "${params.outdir}/SRA" : params.outdir },
-                   saveAs: { params.saveSRA ? it : null }, mode: 'copy'
-
-        input:
-        val sra from sra
-
-        output:
-        file "*_{1,2}.fastq.gz" into read_files_fastqc, read_files_trimming
-
-        script:
-        """
-        parallel-fastq-dump --sra-id $sra --threads ${task.cpus} --split-files --gzip
-        """
-    }
-} else if (params.sra && params.singleEnd) {
-    process downloadSRA_single {
-        publishDir path: { params.saveSRA ? "${params.outdir}/SRA" : params.outdir },
-                   saveAs: { params.saveSRA ? it : null }, mode: 'copy'
-
-        input:
-        val sra from sra
-
-        output:
-        file "*.fastq.gz" into read_files_fastqc, read_files_trimming
-
-        script:
-        """
-        parallel-fastq-dump --sra-id $sra --threads ${task.cpus} --gzip
-        """
-    }
+    exit 1, "Cannot find any FASTQ file. Please use --reads argument."
 }
 
 /*
@@ -309,9 +267,9 @@ process bismark_align {
     tag "$name"
     publishDir "${params.outdir}/bismark_alignments", mode: 'copy',
         saveAs: {filename ->
-            if (filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
-            else if (filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
-            else if (filename.indexOf(".bam") == -1) "logs/$filename"
+            if (params.unmapped && filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
+            else if (params.ambiguous && filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
+            else if (filename.indexOf(".fq.gz") == -1 && filename.indexOf(".bam") == -1) "logs/$filename"
             else params.saveAlignedIntermediates ? filename : null
         }
 
