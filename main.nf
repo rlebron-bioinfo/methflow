@@ -309,8 +309,8 @@ process bismark_align {
     tag "$name"
     publishDir "${params.outdir}/bismark_alignments", mode: 'copy',
         saveAs: {filename ->
-            if (filename.indexOf("*_unmapped_reads_{1,2}.fq.gz") > 0) "unmapped/$filename"
-            else if (filename.indexOf("*_ambiguous_reads_{1,2}.fq.gz") > 0) "ambiguous/$filename"
+            if (filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
+            else if (filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
             else if (filename.indexOf(".bam") == -1) "logs/$filename"
             else params.saveAlignedIntermediates ? filename : null
         }
