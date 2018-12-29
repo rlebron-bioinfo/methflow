@@ -1,0 +1,6 @@
+name: methflow-tools-0.0.0
+channels:
+  - conda-forge
+  - anaconda
+  - defaults
+dependencies: []

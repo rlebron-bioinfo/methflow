@@ -10,7 +10,8 @@ def main(module):
         'main' : '/env/main.yml',
         'two_ref' : '/env/two_ref.yml',
         'diff_meth' : '/env/diff_meth.yml',
-        'data_dump' : '/env/data_dump.yml'
+        'data_dump' : '/env/data_dump.yml',
+        'tools' : '/env/tools.yml'
     }
 
     config = configs[module]
