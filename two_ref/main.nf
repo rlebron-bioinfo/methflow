@@ -381,11 +381,11 @@ process bismark_align_1 {
 
 Channel
 .fromFilePairs( bismark_unmapped, size: params.singleEnd ? 1 : 2 )
-.into { bismark_unmapped_A }
+.set { bismark_unmapped_A }
 
 Channel
 .fromFilePairs( bismark_ambiguous, size: params.singleEnd ? 1 : 2 )
-.into { bismark_ambiguous_A }
+.set { bismark_ambiguous_A }
 
 /*
  * STEP 4B - Second Align with Bismark
@@ -418,6 +418,12 @@ process bismark_align_2 {
     non_directional = params.single_cell || params.zymo || params.non_directional ? "--non_directional" : ''
     unmapped = "--unmapped"
     ambiguous = "--ambiguous"
+    if (!params.use_unmapped) {
+        unmapped_reads = Channel.from(false)
+    }
+    if (!params.use_ambiguous) {
+        ambiguous_reads = Channel.from(false)
+    }
     mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
     multicore = ''
     if (task.cpus){
@@ -646,9 +652,12 @@ process collapseFasta {
 
     script:
     """
-    cat $fasta1 $fasta2 | fasta_formatter | fasta_formatter -t | sort -k1,1V | uniq | sed 's/^/>/g' | sed -e 's/[\t]/\n/g' > ${name}.fa
+    cat $fasta1 $fasta2 | fasta_formatter | fasta_formatter -t \\
+    | sort -k1,1V | uniq \\
+    | sed 's/^/>/g' | sed -e 's/[\t]/\n/g' \\
+    fasta_formatter -w 70 > collapsed.fa
     mkdir BismarkIndex
-    cp ${name}.fa BismarkIndex/
+    cp collapsed.fa BismarkIndex/
     bismark_genome_preparation BismarkIndex
     """
 }
