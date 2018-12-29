@@ -8,13 +8,14 @@ Bootstrap:docker
     VERSION 0.0.0
 
 %files
-    env /
+    env /env
     bin/GenomeAnalysisTK.jar /root/
     bin/M-IndelRealigner /usr/local/bin/
     bin/software_versions /usr/local/bin/
 
 %post
     /usr/bin/apt-get update
+    /usr/bin/apt-get install -y apt-utils
     /usr/bin/apt-get install -y procps
     /bin/rm -rf /var/lib/apt/lists/*
     /usr/bin/apt-get clean -y

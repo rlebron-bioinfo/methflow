@@ -4,12 +4,13 @@ LABEL maintainer="Ricardo Lebrón <rlebron@go.ugr.es>" \
       description="Container image containing all requirements for the methflow pipeline" \
       version='0.0.0'
 
-COPY env /
+COPY env /env
 COPY bin/GenomeAnalysisTK.jar /root/
 COPY bin/M-IndelRealigner bin/software_versions /usr/local/bin/
 
 # Install procps so that Nextflow can poll CPU usage
 RUN apt-get update \
+    && apt-get install -y apt-utils \
     && apt-get install -y procps \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean -y \
