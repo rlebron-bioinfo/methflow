@@ -20,6 +20,7 @@ RUN apt-get update \
     && conda env update -n root -f /env/two_ref.yml \
     && conda env update -n root -f /env/diff_meth.yml \
     && conda env update -n root -f /env/data_dump.yml \
+    && conda env update -n root -f /env/tools.yml \
     && conda install --yes -c conda-forge ncurses=6.1 \
     && conda clean -y --all \
     && /opt/conda/opt/gatk-3.8/gatk3-register.sh /root/GenomeAnalysisTK.jar
