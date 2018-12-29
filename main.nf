@@ -715,7 +715,7 @@ process get_software_versions {
 
     script:
     """
-    software_versions &> software_versions_mqc.yml
+    software_versions --module main &> software_versions_mqc.yml
     """
 }
 
