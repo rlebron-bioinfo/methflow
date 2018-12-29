@@ -1,0 +1,8 @@
+name: methflow-two_ref-0.0.0
+channels:
+  - biobuilds
+  - conda-forge
+  - anaconda
+  - defaults
+dependencies:
+  - biobuilds::fastx-toolkit=0.0.14
