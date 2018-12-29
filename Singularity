@@ -8,8 +8,9 @@ Bootstrap:docker
     VERSION 0.0.0
 
 %files
-    environment.yml /
-    bin/GenomeAnalysisTK.jar /
+    requirements.yml /root/
+    environment.yml /root/
+    bin/GenomeAnalysisTK.jar /root/
     bin/M-IndelRealigner /usr/local/bin/
     bin/software_versions /usr/local/bin/
 
@@ -18,7 +19,9 @@ Bootstrap:docker
     /usr/bin/apt-get install -y procps
     /bin/rm -rf /var/lib/apt/lists/*
     /usr/bin/apt-get clean -y
-    /opt/conda/bin/conda env update -n root -f /environment.yml
-    /opt/conda/bin/conda install -c conda-forge ncurses=6.1
-    /opt/conda/bin/conda clean -a
-    /opt/conda/opt/gatk-3.8/gatk3-register.sh /GenomeAnalysisTK.jar
+    /opt/conda/bin/conda update -y --all 
+    /opt/conda/bin/conda env update -n root -f /root/requirements.yml 
+    /opt/conda/bin/conda env update -n root -f /root/environment.yml 
+    /opt/conda/bin/conda install --yes -c conda-forge ncurses=6.1 
+    /opt/conda/bin/conda clean -y --all 
+    /opt/conda/opt/gatk-3.8/gatk3-register.sh /root/GenomeAnalysisTK.jar
