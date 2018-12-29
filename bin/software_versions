@@ -1,22 +1,40 @@
 #!/usr/bin/env python3
 
-import yaml
+import yaml, click
 
-versions = yaml.load(open('/environment.yml'))['dependencies']
-versions = [ver.strip().split('::')[1].split('=') for ver in versions]
-versions = {k:f'<span style="color:#999999;\">v{v}</span>' for k,v in versions}
 
-print ('''
-id: 'software_versions'
-section_name: 'MethFlow Software Versions'
-section_href: 'https://github.com/rlebron-bioinfo/methflow'
-plot_type: 'html'
-description: 'are collected from environment.yml'
-data: |
-    <dl class="dl-horizontal">
-''')
+@click.command()
+@click.option('--module', required=True)
+def main(module):
+    configs = {
+        'main' : '/env/main.yml',
+        'two_ref' : '/env/two_ref.yml',
+        'diff_meth' : '/env/diff_meth.yml',
+        'data_dump' : '/env/data_dump.yml'
+    }
 
-for k,v in versions.items():
-    print("        <dt>{}</dt><dd>{}</dd>".format(k,v))
+    config = configs[module]
 
-print ("    </dl>")
+    requirements = yaml.load(open('/env/requirements.yml'))['dependencies'] 
+    versions = yaml.load(open(config))['dependencies']
+    versions = {**requirements, **versions}
+    versions = [ver.strip().split('::')[1].split('=') for ver in versions]
+    versions = {k:f'<span style="color:#999999;\">v{v}</span>' for k,v in versions}
+
+    print ('''
+    id: 'software_versions'
+    section_name: 'MethFlow Software Versions'
+    section_href: 'https://github.com/rlebron-bioinfo/methflow'
+    plot_type: 'html'
+    description: 'are collected from environment.yml'
+    data: |
+        <dl class="dl-horizontal">
+    ''')
+
+    for k,v in versions.items():
+        print("        <dt>{}</dt><dd>{}</dd>".format(k,v))
+
+    print ("    </dl>")
+
+if __name__ == '__main__':
+    main()

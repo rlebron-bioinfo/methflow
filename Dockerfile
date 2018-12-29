@@ -4,7 +4,8 @@ LABEL maintainer="Ricardo Lebrón <rlebron@go.ugr.es>" \
       description="Container image containing all requirements for the methflow pipeline" \
       version='0.0.0'
 
-COPY requirements.yml environment.yml bin/GenomeAnalysisTK.jar /root/
+COPY env /
+COPY bin/GenomeAnalysisTK.jar /root/
 COPY bin/M-IndelRealigner bin/software_versions /usr/local/bin/
 
 # Install procps so that Nextflow can poll CPU usage
@@ -13,8 +14,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean -y \
     && conda update -y --all \
-    && conda env update -n root -f /root/requirements.yml \
-    && conda env update -n root -f /root/environment.yml \
+    && conda env update -n root -f /env/requirements.yml \
+    && conda env update -n root -f /env/main.yml \
+    && conda env update -n root -f /env/two_ref.yml \
+    && conda env update -n root -f /env/diff_meth.yml \
+    && conda env update -n root -f /env/data_dump.yml \
     && conda install --yes -c conda-forge ncurses=6.1 \
     && conda clean -y --all \
     && /opt/conda/opt/gatk-3.8/gatk3-register.sh /root/GenomeAnalysisTK.jar
