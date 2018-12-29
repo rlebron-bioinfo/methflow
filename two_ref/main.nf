@@ -418,12 +418,12 @@ process bismark_align_2 {
     non_directional = params.single_cell || params.zymo || params.non_directional ? "--non_directional" : ''
     unmapped = "--unmapped"
     ambiguous = "--ambiguous"
-    if (!params.use_unmapped) {
-        unmapped_reads = Channel.from(false)
-    }
-    if (!params.use_ambiguous) {
-        ambiguous_reads = Channel.from(false)
-    }
+    //if (!params.use_unmapped) {
+    //    unmapped_reads = Channel.from(false)
+    //}
+    //if (!params.use_ambiguous) {
+    //    ambiguous_reads = Channel.from(false)
+    //}
     mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
     multicore = ''
     if (task.cpus){
