@@ -20,3 +20,4 @@ dependencies:
   - bioconda::qualimap=2.2.2b
   - bioconda::methylextract=1.9.1
   - bioconda::multiqc=1.7
+  - bioconda::bioconductor-methylkit=1.6.3
