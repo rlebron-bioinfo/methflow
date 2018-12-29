@@ -518,12 +518,29 @@ if (params.norealign) {
 
         script:
         """
+        samtools sort \\
+        -m ${task.memory.toBytes() / task.cpus} \\
+        -@ ${task.cpus} \\
+        $bam \\
+        > ${bam.baseName}.sorted.bam
+
         M-IndelRealigner \\
             -R $genome \\
-            -I $bam\\
+            -I ${bam.baseName}.sorted.bam \\
             -T temp \\
-            -O ${bam.baseName}.realign.bam\\
+            -O ${bam.baseName}.realign.bam \\
             -C ${task.cpus} \\
+
+        rm ${bam.baseName}.sorted.bam
+
+        samtools sort \\
+        -n \\
+        -m ${task.memory.toBytes() / task.cpus} \\
+        -@ ${task.cpus} \\
+        ${bam.baseName}.realign.bam \\
+        > ${bam.baseName}.realign.sorted.bam
+
+        rm ${bam.baseName}.realign.bam
         """
     }
 }
