@@ -4,7 +4,7 @@ LABEL maintainer="Ricardo Lebrón <rlebron@go.ugr.es>" \
       description="Container image containing all requirements for the methflow pipeline" \
       version='0.0.0'
 
-COPY environment.yml bin/GenomeAnalysisTK.jar /
+COPY requirements.yml environment.yml bin/GenomeAnalysisTK.jar /
 COPY bin/M-IndelRealigner bin/software_versions /usr/local/bin/
 
 # Install procps so that Nextflow can poll CPU usage
