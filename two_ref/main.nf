@@ -516,7 +516,7 @@ if (params.norealign) {
 
         output:
         file "${bam.baseName}.realign.bam" into bam_realign_1, bam_realign_2
-        file "${bam.baseName}.realign.bam.bai" into bam_realign_index, bam_realign_index_2
+        file "${bam.baseName}.realign.bam.bai" into bam_realign_index_1, bam_realign_index_2
 
         script:
         """
