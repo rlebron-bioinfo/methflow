@@ -372,12 +372,12 @@ process bismark_summary {
 }
 
 /*
- * STEP 7 - Sort with samtools
+ * STEP 7 - Sort by coordinates with samtools
  */
 
-process samtools_sort {
+process samtools_sort_by_coordinates {
     tag "${bam.baseName}"
-    publishDir "${params.outdir}/sorted_alignments", mode: 'copy',
+    publishDir "${params.outdir}/alignments_sorted_by_coordinates", mode: 'copy',
         saveAs: {filename ->
             if (params.saveAlignedIntermediates) filename
             else null
@@ -410,7 +410,6 @@ process samtools_sort {
  */
 
 process samtools_merge {
-    tag "${params.name}"
     if (params.norealign && (params.nodedup || params.rrbs)) {
         publishDir "${params.outdir}/merged_alignments", mode: 'copy',
             saveAs: {filename ->
@@ -456,7 +455,6 @@ if (params.nodedup || params.rrbs) {
     dedup_metrics = Channel.from(false)
 } else {
     process removeDuplicates {
-        tag "${bam.baseName}"
         if (params.norealign) {
             publishDir "${params.outdir}/dedup_alignments", mode: 'copy',
                 saveAs: {filename ->
@@ -505,7 +503,6 @@ if (params.norealign) {
     bam_dedup_index.set { bam_final_index }
 } else {
     process indelRealign {
-        tag "${bam.baseName}"
         publishDir "${params.outdir}/realign_alignments", mode: 'copy',
             saveAs: {filename ->
                 if (filename.indexOf(".bam") > 0) "alignments/$filename"
@@ -541,7 +538,6 @@ bam_final_index.into { bam_final_index_1; bam_final_index_2; bam_final_index_3 }
  */
 
 process qualimap {
-    tag "${bam.baseName}"
     publishDir "${params.outdir}/qualimap", mode: 'copy'
 
     input:
@@ -572,7 +568,6 @@ if (params.nombias) {
     bismark_methXtract_results = Channel.from(false)
 } else {
     process mbias_analysis {
-        tag "${bam.baseName}"
         publishDir "${params.outdir}/bismark_methylation_calls", mode: 'copy',
             saveAs: {filename ->
                 if (filename.indexOf("splitting_report.txt") > 0) "logs/$filename"
@@ -643,7 +638,6 @@ if (params.nombias) {
  */
 
 process samtools_sort_by_qname {
-    tag "${bam.baseName}"
     publishDir "${params.outdir}/alignments_sorted_by_qname", mode: 'copy',
         saveAs: {filename ->
             if (params.saveAlignedIntermediates) filename
@@ -675,7 +669,6 @@ process samtools_sort_by_qname {
  */
 
 process MethylExtract {
-    tag "${bam.baseName}"
     publishDir "${params.outdir}/MethylExtract", mode: 'copy'
 
     input:
