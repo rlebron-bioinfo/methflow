@@ -705,7 +705,8 @@ process MethylExtract {
         p=${task.cpus} \\
         memNumReads=$memNumReads \\
         context=$context \\
-        outDir=.
+        outDir=. \\
+        &> process.log || echo "ERROR: $?" 
     """
 }
 
