@@ -372,12 +372,12 @@ process bismark_summary {
 }
 
 /*
- * STEP 7 - Sort by coordinates with samtools
+ * STEP 7 - Sort with samtools
  */
 
-process samtools_sort_by_coordinates {
+process samtools_sort {
     tag "${bam.baseName}"
-    publishDir "${params.outdir}/alignments_sorted_by_coordinates", mode: 'copy',
+    publishDir "${params.outdir}/sorted_alignments", mode: 'copy',
         saveAs: {filename ->
             if (params.saveAlignedIntermediates) filename
             else null
@@ -435,7 +435,13 @@ process samtools_merge {
 
     script:
     """
-    samtools merge -n ${params.name}.merged.bam $bam
+    samtools merge -n ${params.name}.tmp.bam $bam
+    samtools sort \\
+        -m ${task.memory.toBytes() / task.cpus} \\
+        -@ ${task.cpus} \\
+        ${params.name}.tmp.bam \\
+        > ${bam.baseName}.merged.bam
+    rm ${params.name}.tmp.bam
     samtools index ${params.name}.merged.bam
     """
 }
@@ -517,29 +523,12 @@ if (params.norealign) {
 
         script:
         """
-        samtools sort \\
-        -m ${task.memory.toBytes() / task.cpus} \\
-        -@ ${task.cpus} \\
-        $bam \\
-        > ${bam.baseName}.sorted.bam
-
         M-IndelRealigner \\
             -R $genome \\
-            -I ${bam.baseName}.sorted.bam \\
+            -I $bam \\
             -T temp \\
             -O ${bam.baseName}.realign.bam \\
             -C ${task.cpus} \\
-
-        rm ${bam.baseName}.sorted.bam
-
-        samtools sort \\
-        -n \\
-        -m ${task.memory.toBytes() / task.cpus} \\
-        -@ ${task.cpus} \\
-        ${bam.baseName}.realign.bam \\
-        > ${bam.baseName}.realign.sorted.bam
-
-        rm ${bam.baseName}.realign.bam
         """
     }
 }
