@@ -499,8 +499,8 @@ if (params.nodedup || params.rrbs) {
  */
 
 if (params.norealign) {
-    bam_dedup.set { bam_final }
-    bam_dedup_index.set { bam_final_index }
+    bam_dedup.set { bam_realign }
+    bam_dedup_index.set { bam_realign_index }
 } else {
     process indelRealign {
         publishDir "${params.outdir}/realign_alignments", mode: 'copy',
@@ -515,8 +515,8 @@ if (params.norealign) {
         file genome from bismark_index_2
 
         output:
-        file "${bam.baseName}.realign.bam" into bam_final
-        file "${bam.baseName}.realign.bam.bai" into bam_final_index
+        file "${bam.baseName}.realign.bam" into bam_realign_1, bam_realign_2
+        file "${bam.baseName}.realign.bam.bai" into bam_realign_index, bam_realign_index_2
 
         script:
         """
@@ -530,9 +530,6 @@ if (params.norealign) {
     }
 }
 
-bam_final.into { bam_final_1; bam_final_2; bam_final_3 }
-bam_final_index.into { bam_final_index_1; bam_final_index_2; bam_final_index_3 }
-
 /*
  * STEP 11 - Qualimap
  */
@@ -541,8 +538,8 @@ process qualimap {
     publishDir "${params.outdir}/qualimap", mode: 'copy'
 
     input:
-    file bam from bam_final_1
-    file bam_index from bam_final_index_1
+    file bam from bam_realign_1
+    file bam_index from bam_realign_index_1
 
     output:
     file "${bam.baseName}_qualimap" into qualimap_results
@@ -559,7 +556,38 @@ process qualimap {
 }
 
 /*
- * STEP 12 - Bismark M-bias analysis
+ * STEP 12 - Sort by qname with samtools
+ */
+
+process samtools_sort_by_qname {
+    publishDir "${params.outdir}/alignments_sorted_by_qname", mode: 'copy',
+        saveAs: {filename ->
+            if (params.saveAlignedIntermediates) filename
+            else null
+        }
+
+    input:
+    file bam from bam_realign_2
+    file bam_index from bam_realign_index_2
+
+    output:
+    file "${bam.baseName}.sorted.bam" into bam_final_1, bam_final_2
+    file "${bam.baseName}.sorted.bam.bai" into bam_final_index_1, bam_final_2
+
+    script:
+    """
+    samtools sort \\
+        -n \\
+        -m ${task.memory.toBytes() / task.cpus} \\
+        -@ ${task.cpus} \\
+        $bam \\
+        > ${bam.baseName}.sorted.bam
+    samtools index ${bam.baseName}.sorted.bam
+    """
+}
+
+/*
+ * STEP 13 - Bismark M-bias analysis
  */
 
 if (params.nombias) {
@@ -578,8 +606,8 @@ if (params.nombias) {
             }
 
         input:
-        file bam from bam_final_2
-        file bam_index from bam_final_index_2
+        file bam from bam_final_1
+        file bam_index from bam_final_index_1
 
         output:
         file "${bam.baseName}_splitting_report.txt" into bismark_splitting_report
@@ -634,37 +662,6 @@ if (params.nombias) {
 }
 
 /*
- * STEP 13 - Sort by qname with samtools
- */
-
-process samtools_sort_by_qname {
-    publishDir "${params.outdir}/alignments_sorted_by_qname", mode: 'copy',
-        saveAs: {filename ->
-            if (params.saveAlignedIntermediates) filename
-            else null
-        }
-
-    input:
-    file bam from bam_final_3
-    file bam_index from bam_final_index_3
-
-    output:
-    file "${bam.baseName}.sorted.bam" into bam_me
-    file "${bam.baseName}.sorted.bam.bai" into bam_me_index
-
-    script:
-    """
-    samtools sort \\
-        -n \\
-        -m ${task.memory.toBytes() / task.cpus} \\
-        -@ ${task.cpus} \\
-        $bam \\
-        > ${bam.baseName}.sorted.bam
-    samtools index ${bam.baseName}.sorted.bam
-    """
-}
-
-/*
  * STEP 14 - MethylExtract
  */
 
@@ -672,8 +669,8 @@ process MethylExtract {
     publishDir "${params.outdir}/MethylExtract", mode: 'copy'
 
     input:
-    file bam from bam_me
-    file bam_index from bam_me_index
+    file bam from bam_final_2
+    file bam_index from bam_final_index_2
     file fasta from fasta_3
 
     output:
