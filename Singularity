@@ -15,8 +15,7 @@ Bootstrap:docker
 
 %post
     /usr/bin/apt-get update
-    /usr/bin/apt-get install -y apt-utils
-    /usr/bin/apt-get install -y procps
+    /usr/bin/apt-get install -y build-essential gfortran apt-utils procps
     /bin/rm -rf /var/lib/apt/lists/*
     /usr/bin/apt-get clean -y
     /opt/conda/bin/conda update -y --all 

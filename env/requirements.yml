@@ -4,9 +4,6 @@ channels:
   - anaconda
   - r
 dependencies:
-  - anaconda::gcc_linux-64=7.3.0
-  - anaconda::gxx_linux-64=7.3.0
-  - anaconda::gfortran_linux-64=7.3.0
   - conda-forge::python=3.7.1
   - anaconda::click=7.0
   - anaconda::pyyaml=3.13

@@ -10,8 +10,7 @@ COPY bin/M-IndelRealigner bin/software_versions /usr/local/bin/
 
 # Install procps so that Nextflow can poll CPU usage
 RUN apt-get update \
-    && apt-get install -y apt-utils \
-    && apt-get install -y procps \
+    && apt-get install -y build-essential gfortran apt-utils procps \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean -y \
     && conda update -y --all \
