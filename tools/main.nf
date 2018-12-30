@@ -572,7 +572,7 @@ process samtools_sort_by_qname {
 
     output:
     file "${bam.baseName}.sorted.bam" into bam_final_1, bam_final_2
-    file "${bam.baseName}.sorted.bam.bai" into bam_final_index_1, bam_final_2
+    file "${bam.baseName}.sorted.bam.bai" into bam_final_index_1, bam_final_index_2
 
     script:
     """
