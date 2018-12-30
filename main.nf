@@ -440,7 +440,7 @@ process samtools_merge {
         -m ${task.memory.toBytes() / task.cpus} \\
         -@ ${task.cpus} \\
         ${params.name}.tmp.bam \\
-        > ${bam.baseName}.merged.bam
+        > ${params.name}.merged.bam
     rm ${params.name}.tmp.bam
     samtools index ${params.name}.merged.bam
     """
