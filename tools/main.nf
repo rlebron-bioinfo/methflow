@@ -355,7 +355,6 @@ process bismark_report {
  */
 
 process bismark_summary {
-    tag "${params.name}"
     publishDir "${params.outdir}/bismark_summary", mode: 'copy'
 
     input:
