@@ -22,12 +22,12 @@ params.fasta = false
 // Validate inputs
 if( params.bismark_index ){
     bismark_index = Channel
-        .fromPath(params.bismark_index)
+        .fromPath(params.bismark_index, checkIfExists: true)
         .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index}" }
 }
 if ( params.fasta ){
     fasta = Channel
-        .fromPath(params.fasta)
+        .fromPath(params.fasta, checkIfExists: true)
         .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
 }
 else {
@@ -160,7 +160,7 @@ fasta.into { fasta_1; fasta_2; fasta_3 }
 
 if(params.reads){
     Channel
-    .fromFilePairs( params.reads, size: params.singleEnd ? 1 : 2 )
+    .fromFilePairs( params.reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
     .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nIf this is single-end data, please specify --singleEnd on the command line." }
     .into { read_files_fastqc; read_files_trimming }
 } else {
