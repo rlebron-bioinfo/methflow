@@ -706,7 +706,7 @@ process MethylExtract {
         memNumReads=$memNumReads \\
         context=$context \\
         outDir=. \\
-        &> process.log || echo "ERROR: $?" 
+        &> process.log || echo "ERROR" 
     """
 }
 
