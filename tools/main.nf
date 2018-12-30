@@ -571,7 +571,6 @@ process samtools_sort_by_qname {
 
     output:
     file "${bam.baseName}.sorted.bam" into bam_final_1, bam_final_2
-    file "${bam.baseName}.sorted.bam.bai" into bam_final_index_1, bam_final_index_2
 
     script:
     """
@@ -581,7 +580,6 @@ process samtools_sort_by_qname {
         -@ ${task.cpus} \\
         $bam \\
         > ${bam.baseName}.sorted.bam
-    samtools index ${bam.baseName}.sorted.bam
     """
 }
 
@@ -606,7 +604,6 @@ if (params.nombias) {
 
         input:
         file bam from bam_final_1
-        file bam_index from bam_final_index_1
 
         output:
         file "${bam.baseName}_splitting_report.txt" into bismark_splitting_report
@@ -669,7 +666,6 @@ process MethylExtract {
 
     input:
     file bam from bam_final_2
-    file bam_index from bam_final_index_2
     file fasta from fasta_3
 
     output:
