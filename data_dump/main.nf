@@ -372,12 +372,12 @@ process bismark_summary {
 }
 
 /*
- * STEP 7 - Sort with samtools
+ * STEP 7 - Sort by coordinates with samtools
  */
 
-process samtools_sort {
+process samtools_sort_by_coordinates {
     tag "${bam.baseName}"
-    publishDir "${params.outdir}/sorted_alignments", mode: 'copy',
+    publishDir "${params.outdir}/alignments_sorted_by_coordinates", mode: 'copy',
         saveAs: {filename ->
             if (params.saveAlignedIntermediates) filename
             else null
@@ -395,7 +395,6 @@ process samtools_sort {
     script:
     """
     samtools sort \\
-        -n \\
         -m ${task.memory.toBytes() / task.cpus} \\
         -@ ${task.cpus} \\
         $bam \\
@@ -651,7 +650,39 @@ if (params.nombias) {
 }
 
 /*
- * STEP 13 - MethylExtract
+ * STEP 13 - Sort by qname with samtools
+ */
+
+process samtools_sort_by_qname {
+    tag "${bam.baseName}"
+    publishDir "${params.outdir}/alignments_sorted_by_qname", mode: 'copy',
+        saveAs: {filename ->
+            if (params.saveAlignedIntermediates) filename
+            else null
+        }
+
+    input:
+    file bam from bam_final_3
+    file bam_index from bam_final_index_3
+
+    output:
+    file "${bam.baseName}.sorted.bam" into bam_me
+    file "${bam.baseName}.sorted.bam.bai" into bam_me_index
+
+    script:
+    """
+    samtools sort \\
+        -n \\
+        -m ${task.memory.toBytes() / task.cpus} \\
+        -@ ${task.cpus} \\
+        $bam \\
+        > ${bam.baseName}.sorted.bam
+    samtools index ${bam.baseName}.sorted.bam
+    """
+}
+
+/*
+ * STEP 14 - MethylExtract
  */
 
 process MethylExtract {
@@ -659,8 +690,8 @@ process MethylExtract {
     publishDir "${params.outdir}/MethylExtract", mode: 'copy'
 
     input:
-    file bam from bam_final_3
-    file bam_index from bam_final_index_3
+    file bam from bam_me
+    file bam_index from bam_me_index
     file fasta from fasta_3
 
     output:
@@ -705,7 +736,7 @@ process MethylExtract {
 }
 
 /*
- * STEP 13 - Get software versions
+ * STEP 15 - Get software versions
  */
 
 process get_software_versions {
@@ -720,7 +751,7 @@ process get_software_versions {
 }
 
 /*
- * STEP 14 - MultiQC
+ * STEP 16 - MultiQC
  */
 
 process multiqc {
