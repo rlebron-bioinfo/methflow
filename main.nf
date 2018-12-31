@@ -670,7 +670,7 @@ process MethylExtract {
 
     output:
     file "*{output,vcf}" into methylextract_results
-    file "*{log}" into methylextract_log
+    file "*.log" into methylextract_log
 
     script:
     if (params.singleEnd) {
