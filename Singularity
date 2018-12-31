@@ -11,6 +11,8 @@ Bootstrap:docker
     env /env
     jar/GenomeAnalysisTK.jar /root/
     bin /usr/local/bin
+    include /usr/local/include
+    lib /usr/local/lib
 
 %post
     /usr/bin/apt-get update

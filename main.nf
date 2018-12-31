@@ -449,7 +449,7 @@ process samtools_merge {
  */
 
 if (params.nodedup || params.rrbs) {
-    bam_merged.into { bam_dedup }
+    bam_merged.set { bam_dedup }
     bam_merged_index.set { bam_dedup_index }
     dedup_metrics = Channel.from(false)
 } else {

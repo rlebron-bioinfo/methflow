@@ -7,6 +7,8 @@ LABEL maintainer="Ricardo Lebrón <rlebron@go.ugr.es>" \
 COPY env /env
 COPY jar/GenomeAnalysisTK.jar /root/
 COPY bin /usr/local/bin
+COPY include /usr/local/include
+COPY lib /usr/local/lib
 
 # Install procps so that Nextflow can poll CPU usage
 RUN apt-get update \

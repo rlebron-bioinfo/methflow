@@ -467,7 +467,7 @@ process bismark_align_2 {
             else params.saveAlignedIntermediates ? filename : null
         }
     
-    reads2 = bismark_unmapped_1.concat( bismark_ambiguous_1 )
+    reads2 = bismark_unmapped_1.concat( bismark_ambiguous_1 ).subscribe { println it.text }
     
     Channel
     .fromFilePairs( reads2, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
@@ -658,7 +658,7 @@ process samtools_merge {
  */
 
 if (params.nodedup || params.rrbs) {
-    bam_merged.into { bam_dedup }
+    bam_merged.set { bam_dedup }
     bam_merged_index.set { bam_dedup_index }
     dedup_metrics = Channel.from(false)
 } else {
