@@ -151,7 +151,9 @@ summary['M-plot Analysis']  = params.nombias ? 'No' : 'Yes'
 summary['Directional Mode'] = params.single_cell || params.zymo || params.non_directional ? 'No' : 'Yes'
 summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
 if(params.mindepth) summary['Minimum Depth'] = params.mindepth
-summary['Save Reference'] = params.saveReference ? 'Yes' : 'No'
+summary['Save Reference 1'] = params.saveReference1 ? 'Yes' : 'No'
+summary['Save Reference 2'] = params.saveReference2 ? 'Yes' : 'No'
+summary['Save Merged Reference'] = params.saveMergedReference ? 'Yes' : 'No'
 summary['Save Trimmed']   = params.saveTrimmed ? 'Yes' : 'No'
 summary['Save Unmapped 1']  = params.unmapped1 ? 'Yes' : 'No'
 summary['Save Unmapped 2']  = params.unmapped2 ? 'Yes' : 'No'
@@ -293,7 +295,7 @@ bismark_index_2.into { bismark_index_2_1; bismark_index_2_2 }
  * STEP  - Build Merged Bismark index
  */
 
-if(!params.merged_bismark_index && params.merged_fasta){
+if(!params.merged_bismark_index){
     process makeMergedBismarkIndex {
         publishDir path: { params.saveMergedReference ? "${params.outdir}/merged_reference_genome" : params.outdir },
                    saveAs: { params.saveMergedReference ? it : null }, mode: 'copy'
@@ -433,6 +435,18 @@ process bismark_align_1 {
             multicore = "--multicore $ccore"
         }
     }
+    if (params.use_unmapped && params.use_ambiguous) {
+        bismark_reads = bismark_unmapped_1.concat( bismark_ambiguous_1 )
+    } else if (params.use_unmapped) {
+        bismark_reads = bismark_unmapped_1
+    } else if (params.use_ambiguous) {
+        bismark_reads = bismark_ambiguous_1
+    }
+    Channel
+    .fromFilePairs( bismark_reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
+    .ifEmpty { exit 1, "Cannot find any reads matching" }
+    .set { s_trimmed_reads }
+    
     if (params.singleEnd) {
         """
         bismark \\
@@ -450,19 +464,6 @@ process bismark_align_1 {
         """
     }
 }
-
-if (params.use_unmapped && params.use_ambiguous) {
-    bismark_reads = bismark_unmapped_1.concat( bismark_ambiguous_1 )
-} else if (params.use_unmapped) {
-    bismark_reads = bismark_unmapped_1
-} else if (params.use_ambiguous) {
-    bismark_reads = bismark_ambiguous_1
-}
-
-Channel
-.fromFilePairs( bismark_reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
-.ifEmpty { exit 1, "Cannot find any reads matching" }
-.into { s_trimmed_reads }
 
 /*
  * STEP  - Align 2 with Bismark
