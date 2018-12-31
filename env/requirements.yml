@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - anaconda
   - r
+  - bioconda
 dependencies:
   - conda-forge::python=3.7.1
   - anaconda::click=7.0
@@ -12,3 +13,7 @@ dependencies:
   - anaconda::openjdk=8.0.152
   - r::r-base=3.5.1
   - conda-forge::ncurses=6.1
+  - bioconda::perl-app-cpanminus=1.7044
+  - anaconda::libgd=2.2.5
+  - bioconda::perl-extutils-pkgconfig=1.16
+  - conda-forge::libjpeg-turbo=2.0.1

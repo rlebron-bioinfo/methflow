@@ -15,7 +15,8 @@ Bootstrap:docker
 
 %post
     /usr/bin/apt-get update
-    /usr/bin/apt-get install -y build-essential gfortran apt-utils procps
+    /usr/bin/apt-get dist-upgrade -y
+    /usr/bin/apt-get install -y build-essential gfortran apt-utils procps 
     /bin/rm -rf /var/lib/apt/lists/*
     /usr/bin/apt-get clean -y
     /opt/conda/bin/conda update -y --all 
@@ -28,3 +29,6 @@ Bootstrap:docker
     /opt/conda/bin/conda install --yes -c conda-forge ncurses=6.1 
     /opt/conda/bin/conda clean -y --all 
     /opt/conda/opt/gatk-3.8/gatk3-register.sh /root/GenomeAnalysisTK.jar
+    /opt/conda/bin/cpanm inc::latest
+    /opt/conda/bin/cpanm GD
+    /opt/conda/bin/cpanm GD::Graph
