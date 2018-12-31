@@ -498,8 +498,8 @@ if (params.nodedup || params.rrbs) {
  */
 
 if (params.norealign) {
-    bam_dedup.set { bam_realign }
-    bam_dedup_index.set { bam_realign_index }
+    bam_dedup.set { bam_realign_1, bam_realign_2 }
+    bam_dedup_index.set { bam_realign_index_1, bam_realign_index_2 }
 } else {
     process indelRealign {
         publishDir "${params.outdir}/realign_alignments", mode: 'copy',
