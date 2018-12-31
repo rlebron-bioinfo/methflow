@@ -19,6 +19,8 @@ def main(module):
     requirements = yaml.load(open('/env/requirements.yml'))['dependencies'] 
     versions = yaml.load(open(config))['dependencies']
     versions = requirements + versions
+    if module == 'two_ref':
+        versions += yaml.load(open(configs['main']))['dependencies']
     versions = [ver.strip().split('::')[1].split('=') for ver in versions]
     versions = {k:f'<span style="color:#999999;\">v{v}</span>' for k,v in versions}
 

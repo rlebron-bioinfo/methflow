@@ -59,6 +59,11 @@ if ( params.merged_fasta ){
     merged_fasta = Channel
         .fromPath(params.merged_fasta, checkIfExists: true)
         .ifEmpty { exit 1, "Fasta file not found: ${params.merged_fasta}" }
+        .into { merged_fasta_1; merged_fasta_2 }
+}
+
+if (!params.use_unmapped && !params.use_ambiguous) {
+    exit 1, "Please select to use unmapped reads (--use_unmapped), ambiguous reads (--use_ambiguous), or both for Fasta Ref. 2"
 }
 
 multiqc_config = file(params.multiqc_config)
@@ -111,17 +116,21 @@ if(params.pbat){
 }
 
 log.info """========================================================================
-MethFlow : DNA Methylation (BS-Seq) Analysis Pipeline v${params.version}
+MethFlow - two_ref: DNA Methylation (BS-Seq) Analysis Pipeline v${params.version}
 ========================================================================"""
 
 def summary = [:]
-summary['Pipeline Name']  = 'MethFlow'
+summary['Pipeline Name']  = 'MethFlow - two_ref'
 summary['Pipeline Version'] = params.version
 summary['Run Name']       = custom_runName ?: workflow.runName
 summary['Reads']          = params.reads
 summary['Data Type']      = params.singleEnd ? 'Single-End' : 'Paired-End'
-if(params.bismark_index) summary['Bismark Index'] = params.bismark_index
-else if(params.fasta)    summary['Fasta Ref'] = params.fasta
+if(params.bismark_index_1) summary['Bismark Index 1'] = params.bismark_index_1
+if(params.bismark_index_2) summary['Bismark Index 2'] = params.bismark_index_2
+if(params.merged_bismark_index) summary['Merged Bismark Index'] = params.merged_bismark_index
+summary['Fasta Ref 1'] = params.fasta1
+summary['Fasta Ref 2'] = params.fasta2
+summary['Merged Fasta Ref'] = params.merged_fasta
 if(params.rrbs) summary['RRBS Mode'] = 'On'
 if(params.relaxMismatches) summary['Mismatch Func'] = "L,0,-${params.numMismatches} (Bismark default = L,0,-0.2)"
 if(params.notrim)       summary['Trimming Step'] = 'Skipped'
@@ -144,8 +153,12 @@ summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
 if(params.mindepth) summary['Minimum Depth'] = params.mindepth
 summary['Save Reference'] = params.saveReference ? 'Yes' : 'No'
 summary['Save Trimmed']   = params.saveTrimmed ? 'Yes' : 'No'
-summary['Save Unmapped']  = params.unmapped ? 'Yes' : 'No'
-summary['Save Ambiguous'] = params.ambiguous ? 'Yes' : 'No'
+summary['Save Unmapped 1']  = params.unmapped1 ? 'Yes' : 'No'
+summary['Save Unmapped 2']  = params.unmapped2 ? 'Yes' : 'No'
+summary['Save Ambiguous 1'] = params.ambiguous1 ? 'Yes' : 'No'
+summary['Save Ambiguous 2'] = params.ambiguous2 ? 'Yes' : 'No'
+summary['Use Unmapped']  = params.use_unmapped ? 'Yes' : 'No'
+summary['Use Ambiguous'] = params.use_ambiguous ? 'Yes' : 'No'
 summary['Save Intermeds'] = params.saveAlignedIntermediates ? 'Yes' : 'No'
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
@@ -179,7 +192,8 @@ try {
             "============================================================"
 }
 
-fasta.into { fasta_1; fasta_2; fasta_3 }
+fasta1.into { fasta1_1; fasta1_2; fasta1_3 }
+fasta2.into { fasta2_1; fasta2_2; fasta2_3 }
 
 /*
  * STEP 0 - Get FASTQ files
@@ -195,19 +209,48 @@ if(params.reads){
 }
 
 /*
- * STEP 1 - Build Bismark index
+ * STEP  - Make Merged Fasta
  */
 
-if(!params.bismark_index && params.fasta){
-    process makeBismarkIndex {
-        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
-                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
-
+if(!params.merged_fasta){
+    process makeMergedFasta {
+        publishDir "${params.outdir}/merged_fasta", mode: 'copy',
+            saveAs: {filename ->
+                if (params.saveMergedReference) filename
+                else null
+            }
+        
         input:
-        file fasta from fasta_1
+        file f_fasta from fasta1_2
+        file s_fasta from fasta2_2
 
         output:
-        file "BismarkIndex" into bismark_index
+        file 'merged_ref.fa' into merged_fasta_1, merged_fasta_2
+
+        script:
+        """
+        cat $f_fasta $s_fasta \
+        | fasta_formatter | fasta_formatter -t \
+        | sort -k1,1V | uniq | sed 's/^/>/g' | sed -e 's/[\t]/\n/g' \
+        | fasta_formatter -w 70 > merged_ref.fa
+        """
+    }
+}
+
+/*
+ * STEP  - Build Bismark index 1
+ */
+
+if(!params.bismark_index_1 && params.fasta1){
+    process makeBismarkIndex1 {
+        publishDir path: { params.saveReference1 ? "${params.outdir}/reference_genome_1" : params.outdir },
+                   saveAs: { params.saveReference1 ? it : null }, mode: 'copy'
+
+        input:
+        file fasta from fasta1_1
+
+        output:
+        file "BismarkIndex" into bismark_index_1
 
         script:
         """
@@ -218,10 +261,62 @@ if(!params.bismark_index && params.fasta){
     }
 }
 
-bismark_index.into { bismark_index_1; bismark_index_2 }
+bismark_index_1.into { bismark_index_1_1; bismark_index_1_2 }
 
 /*
- * STEP 2 - FastQC
+ * STEP  - Build Bismark index 2
+ */
+
+if(!params.bismark_index_2 && params.fasta2){
+    process makeBismarkIndex2 {
+        publishDir path: { params.saveReference2 ? "${params.outdir}/reference_genome_2" : params.outdir },
+                   saveAs: { params.saveReference2 ? it : null }, mode: 'copy'
+
+        input:
+        file fasta from fasta2_1
+
+        output:
+        file "BismarkIndex" into bismark_index_2
+
+        script:
+        """
+        mkdir BismarkIndex
+        cp $fasta BismarkIndex/
+        bismark_genome_preparation BismarkIndex
+        """
+    }
+}
+
+bismark_index_2.into { bismark_index_2_1; bismark_index_2_2 }
+
+/*
+ * STEP  - Build Merged Bismark index
+ */
+
+if(!params.merged_bismark_index && params.merged_fasta){
+    process makeMergedBismarkIndex {
+        publishDir path: { params.saveMergedReference ? "${params.outdir}/merged_reference_genome" : params.outdir },
+                   saveAs: { params.saveMergedReference ? it : null }, mode: 'copy'
+
+        input:
+        file fasta from merged_fasta_1
+
+        output:
+        file "BismarkIndex" into merged_bismark_index
+
+        script:
+        """
+        mkdir BismarkIndex
+        cp $fasta BismarkIndex/
+        bismark_genome_preparation BismarkIndex
+        """
+    }
+}
+
+merged_bismark_index.into { merged_bismark_index_1; merged_bismark_index_2 }
+
+/*
+ * STEP  - FastQC
  */
 
 process fastqc {
@@ -242,7 +337,7 @@ process fastqc {
 }
 
 /*
- * STEP 3 - Trim Galore!
+ * STEP  - Trim Galore!
  */
 
 if(params.notrim){
@@ -285,34 +380,34 @@ if(params.notrim){
 }
 
 /*
- * STEP 4 - Align with Bismark
+ * STEP  - Align 1 with Bismark
  */
 
-process bismark_align {
+process bismark_align_1 {
     tag "$name"
-    publishDir "${params.outdir}/bismark_alignments", mode: 'copy',
+    publishDir "${params.outdir}/bismark_alignments_1", mode: 'copy',
         saveAs: {filename ->
-            if (params.unmapped && filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
-            else if (params.ambiguous && filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
+            if (params.unmapped1 && filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
+            else if (params.ambiguous1 && filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
             else if (filename.indexOf(".fq.gz") == -1 && filename.indexOf(".bam") == -1) "logs/$filename"
             else params.saveAlignedIntermediates ? filename : null
         }
 
     input:
     set val(name), file(reads) from trimmed_reads
-    file index from bismark_index_1.collect()
+    file index from bismark_index_1_1.collect()
 
     output:
-    file "*.bam" into bam_aligned_1, bam_aligned_2 
-    file "*report.txt" into bismark_align_log_1, bismark_align_log_2, bismark_align_log_3  
-    file "*unmapped_reads*" into bismark_unmapped
-    file "*ambiguous_reads*" into bismark_ambiguous
+    file "*.bam" into bam_aligned_1_1, bam_aligned_1_2 
+    file "*report.txt" into bismark_align_log_1_1, bismark_align_log_1_2, bismark_align_log_1_3  
+    file "*unmapped_reads*" into bismark_unmapped_1
+    file "*ambiguous_reads*" into bismark_ambiguous_1
 
     script:
     pbat = params.pbat ? "--pbat" : ''
     non_directional = params.single_cell || params.zymo || params.non_directional ? "--non_directional" : ''
-    unmapped = params.unmapped ? "--unmapped" : ''
-    ambiguous = params.ambiguous ? "--ambiguous" : ''
+    unmapped = params.unmapped1 ? "--unmapped" : ''
+    ambiguous = params.ambiguous1 ? "--ambiguous" : ''
     mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
     multicore = ''
     if (task.cpus){
@@ -356,8 +451,99 @@ process bismark_align {
     }
 }
 
+if (params.use_unmapped && params.use_ambiguous) {
+    bismark_reads = bismark_unmapped_1.concat( bismark_ambiguous_1 )
+} else if (params.use_unmapped) {
+    bismark_reads = bismark_unmapped_1
+} else if (params.use_ambiguous) {
+    bismark_reads = bismark_ambiguous_1
+}
+
+Channel
+.fromFilePairs( bismark_reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
+.ifEmpty { exit 1, "Cannot find any reads matching" }
+.into { s_trimmed_reads }
+
 /*
- * STEP 5 - Bismark Sample Report
+ * STEP  - Align 2 with Bismark
+ */
+
+process bismark_align_2 {
+    tag "$name"
+    publishDir "${params.outdir}/bismark_alignments_2", mode: 'copy',
+        saveAs: {filename ->
+            if (params.unmapped2 && filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
+            else if (params.ambiguous2 && filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
+            else if (filename.indexOf(".fq.gz") == -1 && filename.indexOf(".bam") == -1) "logs/$filename"
+            else params.saveAlignedIntermediates ? filename : null
+        }
+
+    input:
+    set val(name), file(reads) from s_trimmed_reads
+    file index from bismark_index_2_1.collect()
+
+    output:
+    file "*.bam" into bam_aligned_2_1, bam_aligned_2_2 
+    file "*report.txt" into bismark_align_log_2_1, bismark_align_log_2_2, bismark_align_log_2_3  
+    file "*unmapped_reads*" into bismark_unmapped_2
+    file "*ambiguous_reads*" into bismark_ambiguous_2
+
+    script:
+    pbat = params.pbat ? "--pbat" : ''
+    non_directional = params.single_cell || params.zymo || params.non_directional ? "--non_directional" : ''
+    unmapped = params.unmapped2 ? "--unmapped" : ''
+    ambiguous = params.ambiguous2 ? "--ambiguous" : ''
+    mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
+    multicore = ''
+    if (task.cpus){
+        // Numbers based on recommendation for human genome
+        if(params.single_cell || params.zymo || params.non_directional){
+            cpu_per_multicore = 5
+            mem_per_multicore = (18.GB).toBytes()
+        } else {
+            cpu_per_multicore = 3
+            mem_per_multicore = (13.GB).toBytes()
+        }
+        // How many multicore splits can we afford with the cpus we have?
+        ccore = ((task.cpus as int) / cpu_per_multicore) as int
+        // Check that we have enough memory, assuming 13GB memory per instance
+        try {
+            tmem = (task.memory as nextflow.util.MemoryUnit).toBytes()
+            mcore = (tmem / mem_per_multicore) as int
+            ccore = Math.min(ccore, mcore)
+        } catch (all) {
+            log.debug "Not able to define bismark align multicore based on available memory"
+        }
+        if(ccore > 1){
+            multicore = "--multicore $ccore"
+        }
+    }
+    if (params.singleEnd) {
+        """
+        bismark \\
+            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
+            --genome $index \\
+            $reads
+        """
+    } else {
+        """
+        bismark \\
+            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
+            --genome $index \\
+            -1 ${reads[0]} \\
+            -2 ${reads[1]}
+        """
+    }
+} 
+
+bam_aligned_1 = bam_aligned_1_1.concat( bam_aligned_2_1 )
+bam_aligned_2 = bam_aligned_1_2.concat( bam_aligned_2_2 )
+bismark_align_log_1 = bismark_align_log_1_1.concat( bismark_align_log_2_1 )
+bismark_align_log_2 = bismark_align_log_1_2.concat( bismark_align_log_2_2 )
+bismark_align_log_3 = bismark_align_log_1_3.concat( bismark_align_log_2_3 )
+
+/*
+ * STEP  - Bismark Sample Report
  */
 
 process bismark_report {
@@ -378,7 +564,7 @@ process bismark_report {
 }
 
 /*
- * STEP 6 - Bismark Summary Report
+ * STEP  - Bismark Summary Report
  */
 
 process bismark_summary {
@@ -398,7 +584,7 @@ process bismark_summary {
 }
 
 /*
- * STEP 7 - Sort by coordinates with samtools
+ * STEP  - Sort by coordinates with samtools
  */
 
 process samtools_sort_by_coordinates {
@@ -432,7 +618,7 @@ process samtools_sort_by_coordinates {
 }
 
 /*
- * STEP 8 - Merge with samtools
+ * STEP  - Merge with samtools
  */
 
 process samtools_merge {
@@ -472,7 +658,7 @@ process samtools_merge {
 }
 
 /*
- * STEP 9 - Remove duplicates
+ * STEP  - Remove duplicates
  */
 
 if (params.nodedup || params.rrbs) {
@@ -521,7 +707,7 @@ if (params.nodedup || params.rrbs) {
 }
 
 /*
- * STEP 10 - Local indel realignment
+ * STEP  - Local indel realignment
  */
 
 if (params.norealign) {
@@ -538,7 +724,7 @@ if (params.norealign) {
         input:
         file bam from bam_dedup
         file bam_index from bam_dedup_index
-        file genome from bismark_index_2
+        file genome from merged_bismark_index
 
         output:
         file "${bam.baseName}.realign.bam" into bam_realign_1, bam_realign_2
@@ -557,7 +743,7 @@ if (params.norealign) {
 }
 
 /*
- * STEP 11 - Qualimap
+ * STEP  - Qualimap
  */
 
 process qualimap {
@@ -582,7 +768,7 @@ process qualimap {
 }
 
 /*
- * STEP 12 - Sort by qname with samtools
+ * STEP  - Sort by qname with samtools
  */
 
 process samtools_sort_by_qname {
@@ -611,7 +797,7 @@ process samtools_sort_by_qname {
 }
 
 /*
- * STEP 13 - Bismark M-bias analysis
+ * STEP  - Bismark M-bias analysis
  */
 
 if (params.nombias) {
@@ -685,7 +871,7 @@ if (params.nombias) {
 }
 
 /*
- * STEP 14 - MethylExtract
+ * STEP  - MethylExtract
  */
 
 process MethylExtract {
@@ -693,7 +879,7 @@ process MethylExtract {
 
     input:
     file bam from bam_final_2
-    file fasta from fasta_3
+    file fasta from merged_fasta_2
 
     output:
     file "*{output,vcf}" into methylextract_results
@@ -738,7 +924,7 @@ process MethylExtract {
 }
 
 /*
- * STEP 15 - Get software versions
+ * STEP  - Get software versions
  */
 
 process get_software_versions {
@@ -748,12 +934,12 @@ process get_software_versions {
 
     script:
     """
-    software_versions --module main &> software_versions_mqc.yml
+    software_versions --module two_ref &> software_versions_mqc.yml
     """
 }
 
 /*
- * STEP 16 - MultiQC
+ * STEP  - MultiQC
  */
 
 process multiqc {

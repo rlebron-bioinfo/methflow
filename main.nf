@@ -94,7 +94,7 @@ summary['Run Name']       = custom_runName ?: workflow.runName
 summary['Reads']          = params.reads
 summary['Data Type']      = params.singleEnd ? 'Single-End' : 'Paired-End'
 if(params.bismark_index) summary['Bismark Index'] = params.bismark_index
-else if(params.fasta)    summary['Fasta Ref'] = params.fasta
+summary['Fasta Ref'] = params.fasta
 if(params.rrbs) summary['RRBS Mode'] = 'On'
 if(params.relaxMismatches) summary['Mismatch Func'] = "L,0,-${params.numMismatches} (Bismark default = L,0,-0.2)"
 if(params.notrim)       summary['Trimming Step'] = 'Skipped'
