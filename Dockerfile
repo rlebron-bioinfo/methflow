@@ -5,8 +5,8 @@ LABEL maintainer="Ricardo Lebrón <rlebron@go.ugr.es>" \
       version='0.0.0'
 
 COPY env /env
-COPY bin/GenomeAnalysisTK.jar /root/
-COPY bin/M-IndelRealigner bin/software_versions /usr/local/bin/
+COPY jar/GenomeAnalysisTK.jar /root/
+COPY bin /usr/local/bin
 
 # Install procps so that Nextflow can poll CPU usage
 RUN apt-get update \

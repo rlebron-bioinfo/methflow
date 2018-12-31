@@ -9,9 +9,8 @@ Bootstrap:docker
 
 %files
     env /env
-    bin/GenomeAnalysisTK.jar /root/
-    bin/M-IndelRealigner /usr/local/bin/
-    bin/software_versions /usr/local/bin/
+    jar/GenomeAnalysisTK.jar /root/
+    bin /usr/local/bin
 
 %post
     /usr/bin/apt-get update
