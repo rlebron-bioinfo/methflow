@@ -231,9 +231,9 @@ if(!params.merged_fasta){
 
         script:
         """
-        cat $f_fasta $s_fasta \
-        | fasta_formatter | fasta_formatter -t \
-        | sort -k1,1V | uniq | sed 's/^/>/g' | sed -e 's/[\t]/\n/g' \
+        cat $f_fasta $s_fasta \\
+        | fasta_formatter | fasta_formatter -t \\
+        | sort -k1,1V | uniq | sed \'s/^/>/g\' | sed -e \'s/[\\t]/\\n/g\' \\
         | fasta_formatter -w 70 > merged_ref.fa
         """
     }
@@ -457,7 +457,8 @@ unmapped_files = bismark_unmapped_1.collect()
 ambiguous_files = bismark_ambiguous_1.collect()
 reads2 = unmapped_files.concat( ambiguous_files )
 
-Channel
+reads2
+.collect()
 .collate( params.singleEnd ? 1 : 2 )
 .set { bismark_reads2 }
 
