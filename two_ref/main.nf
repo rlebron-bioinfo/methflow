@@ -16,22 +16,49 @@
  */
 
 params.name = false
-params.bismark_index = false
-params.fasta = false
+params.bismark_index_1 = false
+params.bismark_index_2 = false
+params.merged_bismark_index = false
+params.fasta1 = false
+params.fasta2 = false
+params.merged_fasta = false
 
 // Validate inputs
-if( params.bismark_index ){
-    bismark_index = Channel
-        .fromPath(params.bismark_index, checkIfExists: true)
-        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index}" }
+if( params.bismark_index_1 ){
+    bismark_index_1 = Channel
+        .fromPath(params.bismark_index_1, checkIfExists: true)
+        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index_1}" }
 }
-if ( params.fasta ){
-    fasta = Channel
-        .fromPath(params.fasta, checkIfExists: true)
-        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
+if( params.bismark_index_2 ){
+    bismark_index_2 = Channel
+        .fromPath(params.bismark_index_2, checkIfExists: true)
+        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index_2}" }
+}
+if( params.merged_bismark_index ){
+    merged_bismark_index = Channel
+        .fromPath(params.merged_bismark_index, checkIfExists: true)
+        .ifEmpty { exit 1, "Bismark index not found: ${params.merged_bismark_index}" }
+}
+if ( params.fasta1 ){
+    fasta1 = Channel
+        .fromPath(params.fasta1, checkIfExists: true)
+        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta1}" }
 }
 else {
-    exit 1, "No Fasta reference specified! This is required by MethylExtract."
+    exit 1, "No Fasta1 reference specified! This is required by MethylExtract."
+}
+if ( params.fasta2 ){
+    fasta2 = Channel
+        .fromPath(params.fasta2, checkIfExists: true)
+        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta2}" }
+}
+else {
+    exit 1, "No Fasta2 reference specified! This is required by MethylExtract."
+}
+if ( params.merged_fasta ){
+    merged_fasta = Channel
+        .fromPath(params.merged_fasta, checkIfExists: true)
+        .ifEmpty { exit 1, "Fasta file not found: ${params.merged_fasta}" }
 }
 
 multiqc_config = file(params.multiqc_config)
