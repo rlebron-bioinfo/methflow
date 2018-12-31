@@ -453,6 +453,14 @@ process bismark_align_1 {
     }
 }
 
+unmapped_files = bismark_unmapped_1.collect()
+ambiguous_files = bismark_ambiguous_1.collect()
+reads2 = unmapped_files.concat( ambiguous_files )
+
+Channel
+.collate( params.singleEnd ? 1 : 2 )
+.set { bismark_reads2 }
+
 /*
  * STEP  - Align 2 with Bismark
  */
@@ -466,13 +474,6 @@ process bismark_align_2 {
             else if (filename.indexOf(".fq.gz") == -1 && filename.indexOf(".bam") == -1) "logs/$filename"
             else params.saveAlignedIntermediates ? filename : null
         }
-    
-    reads2 = bismark_unmapped_1.concat( bismark_ambiguous_1 ).subscribe { println it.text }
-    
-    Channel
-    .fromFilePairs( reads2, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
-    .ifEmpty { exit 1, "Cannot find any reads matching." }
-    .set { bismark_reads2 }
 
     input:
     set val(name), file(reads) from bismark_reads2
