@@ -435,18 +435,6 @@ process bismark_align_1 {
             multicore = "--multicore $ccore"
         }
     }
-    if (params.use_unmapped && params.use_ambiguous) {
-        bismark_reads = bismark_unmapped_1.concat( bismark_ambiguous_1 )
-    } else if (params.use_unmapped) {
-        bismark_reads = bismark_unmapped_1
-    } else if (params.use_ambiguous) {
-        bismark_reads = bismark_ambiguous_1
-    }
-    Channel
-    .fromFilePairs( bismark_reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
-    .ifEmpty { exit 1, "Cannot find any reads matching" }
-    .set { s_trimmed_reads }
-    
     if (params.singleEnd) {
         """
         bismark \\
@@ -480,7 +468,7 @@ process bismark_align_2 {
         }
 
     input:
-    set val(name), file(reads) from s_trimmed_reads
+    set val(name), file(reads) from bismark_unmapped_1.concat( bismark_ambiguous_1 ).fromFilePairs( params.reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
     file index from bismark_index_2_1.collect()
 
     output:
