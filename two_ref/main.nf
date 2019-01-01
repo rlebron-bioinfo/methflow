@@ -494,15 +494,15 @@ process bismark_report {
     publishDir "${params.outdir}/bismark_reports", mode: 'copy'
 
     input:
-    file bismark_align_log_1.flatten()
+    file log_1 from bismark_align_log_1.flatten()
 
     output:
     file '*{html,txt}' into bismark_reports_results
 
     script:
-    name = bismark_align_log_1.toString() - ~/(_R1)?(_trimmed|_val_1).+$/
+    name = log_1.toString() - ~/(_R1)?(_trimmed|_val_1).+$/
     """
-    bismark2report --alignment_report $bismark_align_log_1
+    bismark2report --alignment_report $log_1
     """
 }
 
