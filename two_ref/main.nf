@@ -252,13 +252,13 @@ if(!params.bismark_index_1 && params.fasta1){
         file fasta from fasta1_1
 
         output:
-        file "BismarkIndex" into bismark_index_1
+        file "BismarkIndex1" into bismark_index_1
 
         script:
         """
-        mkdir BismarkIndex
-        cp $fasta BismarkIndex/
-        bismark_genome_preparation BismarkIndex
+        mkdir BismarkIndex1
+        cp $fasta BismarkIndex1/
+        bismark_genome_preparation BismarkIndex1
         """
     }
 }
@@ -278,13 +278,13 @@ if(!params.bismark_index_2 && params.fasta2){
         file fasta from fasta2_1
 
         output:
-        file "BismarkIndex" into bismark_index_2
+        file "BismarkIndex2" into bismark_index_2
 
         script:
         """
-        mkdir BismarkIndex
-        cp $fasta BismarkIndex/
-        bismark_genome_preparation BismarkIndex
+        mkdir BismarkIndex2
+        cp $fasta BismarkIndex2/
+        bismark_genome_preparation BismarkIndex2
         """
     }
 }
@@ -304,13 +304,13 @@ if(!params.merged_bismark_index){
         file fasta from merged_fasta_1
 
         output:
-        file "BismarkIndex" into merged_bismark_index
+        file "MergedBismarkIndex" into merged_bismark_index
 
         script:
         """
-        mkdir BismarkIndex
-        cp $fasta BismarkIndex/
-        bismark_genome_preparation BismarkIndex
+        mkdir MergedBismarkIndex
+        cp $fasta MergedBismarkIndex/
+        bismark_genome_preparation MergedBismarkIndex
         """
     }
 }
