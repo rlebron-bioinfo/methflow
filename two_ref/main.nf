@@ -211,7 +211,7 @@ if(params.reads){
 }
 
 /*
- * STEP  - Make Merged Fasta
+ * STEP 1 - Make Merged Fasta
  */
 
 if(!params.merged_fasta){
@@ -240,7 +240,7 @@ if(!params.merged_fasta){
 }
 
 /*
- * STEP  - Build Bismark index 1
+ * STEP 2 - Build Bismark index 1
  */
 
 if(!params.bismark_index_1 && params.fasta1){
@@ -266,7 +266,7 @@ if(!params.bismark_index_1 && params.fasta1){
 bismark_index_1.into { bismark_index_1_1; bismark_index_1_2 }
 
 /*
- * STEP  - Build Bismark index 2
+ * STEP 3 - Build Bismark index 2
  */
 
 if(!params.bismark_index_2 && params.fasta2){
@@ -292,7 +292,7 @@ if(!params.bismark_index_2 && params.fasta2){
 bismark_index_2.into { bismark_index_2_1; bismark_index_2_2 }
 
 /*
- * STEP  - Build Merged Bismark index
+ * STEP 4 - Build Merged Bismark index
  */
 
 if(!params.merged_bismark_index){
@@ -318,7 +318,7 @@ if(!params.merged_bismark_index){
 merged_bismark_index.into { merged_bismark_index_1; merged_bismark_index_2 }
 
 /*
- * STEP  - FastQC
+ * STEP 5 - FastQC
  */
 
 process fastqc {
@@ -339,7 +339,7 @@ process fastqc {
 }
 
 /*
- * STEP  - Trim Galore!
+ * STEP 6 - Trim Galore!
  */
 
 if(params.notrim){
@@ -382,12 +382,12 @@ if(params.notrim){
 }
 
 /*
- * STEP  - Align 1 with Bismark
+ * STEP 7 - Align with Bismark
  */
 
-process bismark_align_1 {
+process bismark_align {
     tag "$name"
-    publishDir "${params.outdir}/bismark_alignments_1", mode: 'copy',
+    publishDir "${params.outdir}/bismark_alignments", mode: 'copy',
         saveAs: {filename ->
             if (params.unmapped1 && filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
             else if (params.ambiguous1 && filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
@@ -397,13 +397,14 @@ process bismark_align_1 {
 
     input:
     set val(name), file(reads) from trimmed_reads
-    file index from bismark_index_1_1.collect()
+    file index1 from bismark_index_1_1.collect()
+    file index2 from bismark_index_2_1.collect()
 
     output:
-    file "*.bam" into bam_aligned_1_1, bam_aligned_1_2 
-    file "*report.txt" into bismark_align_log_1_1, bismark_align_log_1_2, bismark_align_log_1_3  
-    file "*unmapped_reads*" into bismark_unmapped_1
-    file "*ambiguous_reads*" into bismark_ambiguous_1
+    file "*.bam" into bam_aligned_1, bam_aligned_2
+    file "*report.txt" into bismark_align_log_1, bismark_align_log_2, bismark_align_log_3  
+    file "*unmapped_reads*" into bismark_unmapped
+    file "*ambiguous_reads*" into bismark_ambiguous
 
     script:
     pbat = params.pbat ? "--pbat" : ''
@@ -412,6 +413,26 @@ process bismark_align_1 {
     ambiguous = params.ambiguous1 ? "--ambiguous" : ''
     mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
     multicore = ''
+    if (params.singleEnd) {
+        if (params.use_unmapped && params.use_ambiguous) {
+            reused_reads = "${reads}_unmapped_reads.fq.gz,${reads}_ambiguous_reads.fq.gz"
+        } else if (params.use_unmapped) {
+            reused_reads = "${reads}_unmapped_reads.fq.gz"
+        } else if (params.use_ambiguous) {
+            reused_reads = "${reads}_ambiguous_reads.fq.gz"
+        }
+    } else {
+        if (params.use_unmapped && params.use_ambiguous) {
+            reused_reads_1 = "${reads[0]}_unmapped_reads_1.fq.gz,${reads[0]}_ambiguous_reads_1.fq.gz"
+            reused_reads_2 = "${reads[1]}_unmapped_reads_2.fq.gz,${reads[1]}_ambiguous_reads_2.fq.gz"
+        } else if (params.use_unmapped) {
+            reused_reads_1 = "${reads[0]}_unmapped_reads_1.fq.gz"
+            reused_reads_2 = "${reads[1]}_unmapped_reads_2.fq.gz"
+        } else if (params.use_ambiguous) {
+            reused_reads_1 = "${reads[0]}_ambiguous_reads_1.fq.gz"
+            reused_reads_2 = "${reads[1]}_ambiguous_reads_2.fq.gz"
+        }
+    }
     if (task.cpus){
         // Numbers based on recommendation for human genome
         if(params.single_cell || params.zymo || params.non_directional){
@@ -439,109 +460,33 @@ process bismark_align_1 {
         """
         bismark \\
             --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
-            --genome $index \\
+            --genome $index1 \\
             $reads
+        
+        bismark \\
+            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
+            --genome $index2 \\
+            $reused_reads
         """
     } else {
         """
         bismark \\
             --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
-            --genome $index \\
+            --genome $index1 \\
             -1 ${reads[0]} \\
             -2 ${reads[1]}
+
+        bismark \\
+            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
+            --genome $index2 \\
+            -1 $reused_reads_1 \\
+            -2 $reused_reads_2
         """
     }
 }
 
-unmapped_files = bismark_unmapped_1.collect()
-ambiguous_files = bismark_ambiguous_1.collect()
-reads2 = unmapped_files.concat( ambiguous_files )
-
-reads2
-.collect()
-.collate( params.singleEnd ? 1 : 2 )
-.set { bismark_reads2 }
-
 /*
- * STEP  - Align 2 with Bismark
- */
-
-process bismark_align_2 {
-    tag "$name"
-    publishDir "${params.outdir}/bismark_alignments_2", mode: 'copy',
-        saveAs: {filename ->
-            if (params.unmapped2 && filename.indexOf("_unmapped_reads_") > 0) "unmapped/$filename"
-            else if (params.ambiguous2 && filename.indexOf("_ambiguous_reads_") > 0) "ambiguous/$filename"
-            else if (filename.indexOf(".fq.gz") == -1 && filename.indexOf(".bam") == -1) "logs/$filename"
-            else params.saveAlignedIntermediates ? filename : null
-        }
-
-    input:
-    set val(name), file(reads) from bismark_reads2
-    file index from bismark_index_2_1.collect()
-
-    output:
-    file "*.bam" into bam_aligned_2_1, bam_aligned_2_2 
-    file "*report.txt" into bismark_align_log_2_1, bismark_align_log_2_2, bismark_align_log_2_3  
-    file "*unmapped_reads*" into bismark_unmapped_2
-    file "*ambiguous_reads*" into bismark_ambiguous_2
-
-    script:
-    pbat = params.pbat ? "--pbat" : ''
-    non_directional = params.single_cell || params.zymo || params.non_directional ? "--non_directional" : ''
-    unmapped = params.unmapped2 ? "--unmapped" : ''
-    ambiguous = params.ambiguous2 ? "--ambiguous" : ''
-    mismatches = params.relaxMismatches ? "--score_min L,0,-${params.numMismatches}" : ''
-    multicore = ''
-    if (task.cpus){
-        // Numbers based on recommendation for human genome
-        if(params.single_cell || params.zymo || params.non_directional){
-            cpu_per_multicore = 5
-            mem_per_multicore = (18.GB).toBytes()
-        } else {
-            cpu_per_multicore = 3
-            mem_per_multicore = (13.GB).toBytes()
-        }
-        // How many multicore splits can we afford with the cpus we have?
-        ccore = ((task.cpus as int) / cpu_per_multicore) as int
-        // Check that we have enough memory, assuming 13GB memory per instance
-        try {
-            tmem = (task.memory as nextflow.util.MemoryUnit).toBytes()
-            mcore = (tmem / mem_per_multicore) as int
-            ccore = Math.min(ccore, mcore)
-        } catch (all) {
-            log.debug "Not able to define bismark align multicore based on available memory"
-        }
-        if(ccore > 1){
-            multicore = "--multicore $ccore"
-        }
-    }
-    if (params.singleEnd) {
-        """
-        bismark \\
-            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
-            --genome $index \\
-            $reads
-        """
-    } else {
-        """
-        bismark \\
-            --bam $pbat $non_directional $unmapped $ambiguous $mismatches $multicore \\
-            --genome $index \\
-            -1 ${reads[0]} \\
-            -2 ${reads[1]}
-        """
-    }
-} 
-
-bam_aligned_1 = bam_aligned_1_1.concat( bam_aligned_2_1 )
-bam_aligned_2 = bam_aligned_1_2.concat( bam_aligned_2_2 )
-bismark_align_log_1 = bismark_align_log_1_1.concat( bismark_align_log_2_1 )
-bismark_align_log_2 = bismark_align_log_1_2.concat( bismark_align_log_2_2 )
-bismark_align_log_3 = bismark_align_log_1_3.concat( bismark_align_log_2_3 )
-
-/*
- * STEP  - Bismark Sample Report
+ * STEP 8 - Bismark Sample Report
  */
 
 process bismark_report {
@@ -562,7 +507,7 @@ process bismark_report {
 }
 
 /*
- * STEP  - Bismark Summary Report
+ * STEP 9 - Bismark Summary Report
  */
 
 process bismark_summary {
@@ -582,7 +527,7 @@ process bismark_summary {
 }
 
 /*
- * STEP  - Sort by coordinates with samtools
+ * STEP 10 - Sort by coordinates with samtools
  */
 
 process samtools_sort_by_coordinates {
@@ -616,7 +561,7 @@ process samtools_sort_by_coordinates {
 }
 
 /*
- * STEP  - Merge with samtools
+ * STEP 11 - Merge with samtools
  */
 
 process samtools_merge {
@@ -656,7 +601,7 @@ process samtools_merge {
 }
 
 /*
- * STEP  - Remove duplicates
+ * STEP 12 - Remove duplicates
  */
 
 if (params.nodedup || params.rrbs) {
@@ -705,7 +650,7 @@ if (params.nodedup || params.rrbs) {
 }
 
 /*
- * STEP  - Local indel realignment
+ * STEP 13 - Local indel realignment
  */
 
 if (params.norealign) {
@@ -741,7 +686,7 @@ if (params.norealign) {
 }
 
 /*
- * STEP  - Qualimap
+ * STEP 14 - Qualimap
  */
 
 process qualimap {
@@ -766,7 +711,7 @@ process qualimap {
 }
 
 /*
- * STEP  - Sort by qname with samtools
+ * STEP 15 - Sort by qname with samtools
  */
 
 process samtools_sort_by_qname {
@@ -795,7 +740,7 @@ process samtools_sort_by_qname {
 }
 
 /*
- * STEP  - Bismark M-bias analysis
+ * STEP 16 - Bismark M-bias analysis
  */
 
 if (params.nombias) {
@@ -869,7 +814,7 @@ if (params.nombias) {
 }
 
 /*
- * STEP  - MethylExtract
+ * STEP 17 - MethylExtract
  */
 
 process MethylExtract {
@@ -922,7 +867,7 @@ process MethylExtract {
 }
 
 /*
- * STEP  - Get software versions
+ * STEP 18 - Get software versions
  */
 
 process get_software_versions {
@@ -937,7 +882,7 @@ process get_software_versions {
 }
 
 /*
- * STEP  - MultiQC
+ * STEP 19 - MultiQC
  */
 
 process multiqc {
