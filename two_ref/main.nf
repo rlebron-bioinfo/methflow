@@ -494,7 +494,7 @@ process bismark_report {
     publishDir "${params.outdir}/bismark_reports", mode: 'copy'
 
     input:
-    file bismark_align_log_1
+    file bismark_align_log_1.flatten()
 
     output:
     file '*{html,txt}' into bismark_reports_results
@@ -514,8 +514,8 @@ process bismark_summary {
     publishDir "${params.outdir}/bismark_summary", mode: 'copy'
 
     input:
-    file ('*') from bam_aligned_1.collect()
-    file ('*') from bismark_align_log_2.collect()
+    file ('*') from bam_aligned_1.flatten().collect()
+    file ('*') from bismark_align_log_2.flatten().collect()
 
     output:
     file '*{html,txt}' into bismark_summary_results
@@ -539,7 +539,7 @@ process samtools_sort_by_coordinates {
         }
 
     input:
-    file bam from bam_aligned_2
+    file bam from bam_aligned_2.flatten()
 
     output:
     file "${bam.baseName}.sorted.bam" into bam_sorted
