@@ -295,7 +295,7 @@ bismark_index_2.into { bismark_index_2_1; bismark_index_2_2 }
  * STEP 4 - Build Merged Bismark index
  */
 
-if(!params.merged_bismark_index){
+if(!params.merged_bismark_index && !params.norealign){
     process makeMergedBismarkIndex {
         publishDir path: { params.saveMergedReference ? "${params.outdir}/merged_reference_genome" : params.outdir },
                    saveAs: { params.saveMergedReference ? it : null }, mode: 'copy'
@@ -314,8 +314,6 @@ if(!params.merged_bismark_index){
         """
     }
 }
-
-merged_bismark_index.into { merged_bismark_index_1; merged_bismark_index_2 }
 
 /*
  * STEP 5 - FastQC
