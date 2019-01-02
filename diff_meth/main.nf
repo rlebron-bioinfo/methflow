@@ -19,24 +19,28 @@ params.indir = false
 params.comparisons = false
 params.groups = false
 
-/*
+
 // Validate inputs
-if( params.bismark_index ){
-    bismark_index = Channel
-        .fromPath(params.bismark_index, checkIfExists: true)
-        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index}" }
+if( params.indir ){
+    indir = Channel
+        .fromPath(params.indir, checkIfExists: true)
+        .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
+} else {
+  exit 1, "No input directory specified!"
 }
-if ( params.fasta ){
+if ( params.comparisons ){
     fasta = Channel
-        .fromPath(params.fasta, checkIfExists: true)
-        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
+        .fromPath(params.comparisons, checkIfExists: true)
+        .ifEmpty { exit 1, "Comparisons file not found: ${params.comparisons}" }
 }
 else {
-    exit 1, "No Fasta reference specified! This is required by MethylExtract."
+  exit 1, "No comparisons file specified!"
 }
-
-multiqc_config = file(params.multiqc_config)
-*/
+if ( params.groups ){
+    fasta = Channel
+        .fromPath(params.groups, checkIfExists: true)
+        .ifEmpty { exit 1, "Groups file not found: ${params.groups}" }
+}
 
 // Has the run name been specified by the user?
 //  this has the bonus effect of catching both -name and --name
