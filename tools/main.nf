@@ -59,6 +59,7 @@ if (params.groups) summary['Groups'] = params.groups
 summary['Clusters'] = params.clusters ? 'Yes' : 'No'
 summary['Minimal Diff Meth'] = params.minDiffMeth
 summary['Q-value threshold'] = params.qval
+summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time
