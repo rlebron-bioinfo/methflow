@@ -28,5 +28,5 @@ RUN apt-get update \
     && conda clean -y --all \
     && /opt/conda/opt/gatk-3.8/gatk3-register.sh /root/GenomeAnalysisTK.jar \
     && /opt/conda/bin/cpanm inc::latest \
-    && /opt/conda/bin/cpanm GD \
+    && /opt/conda/bin/cpanm --force GD \
     && /opt/conda/bin/cpanm GD::Graph

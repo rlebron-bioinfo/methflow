@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+
+import logging, click
+import os, sys
+import csv, gzip, bz2
+
+prog = 'check_comparisons'
+version = '0.0.0'
+
+logger = logging.getLogger(prog)
+logger.setLevel(logging.DEBUG)
+format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+formatter = logging.Formatter(format)
+
+logstream = logging.StreamHandler()
+logstream.setLevel(logging.DEBUG)
+logstream.setFormatter(formatter)
+logger.addHandler(logstream)
+
+logfile = logging.FileHandler('check_comparisons.log')
+logfile.setLevel(logging.DEBUG)
+logfile.setFormatter(formatter)
+logger.addHandler(logfile)
+
+
+@click.command()
+@click.option('--ignore-upper/--no-ignore-upper', is_flag=True, default=False)
+@click.option('--ignore-diagonal/--no-ignore-diagonal', is_flag=True, default=True)
+@click.option('--ignore-lower/--no-ignore-lower', is_flag=True, default=False)
+@click.option('__input', required=True, prompt=False, type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True))
+@click.option('__output', required=True, prompt=False, type=click.Path(exists=False, writable=True, resolve_path=True))
+@click.version_option(version=version)
+def main(ignore_upper, ignore_diagonal, ignore_lower, __input, __output):
+    # TO DO: CHECK PATHS - indir
+
+    i_handle = open_handle(__input, mode='rt')
+    i_reader = csv.reader(i_handle, delimiter='\t')
+    o_handle = open_handle(__output, mode='wt')
+    o_writer = csv.writer(o_handle, delimiter='\t')
+
+    is_matrix = detect_matrix(i_handle, i_reader)
+    if is_matrix:
+        upper = dict()
+        diagonal = dict()
+        lower = dict()
+        cols = (next(i_reader)[1:]
+        n_row = 0
+        for row in i_reader:
+            n_col = cols.
+            n_row += 1
+    else:
+        pass
+
+    i_handle.close()
+    o_handle.close()
+
+
+def abort():
+    logger.error(f'aborting program...')
+    sys.exit(1)
+
+
+def open_handle(file, mode='rt'):
+    ext = os.path.splitext(os.path.basename(file))[1]
+    if ext == '.gz':
+        handle = gzip.open(file, mode=mode)
+    elif ext == '.bz2':
+        handle = bz2.open(file, mode=mode)
+    else:
+        handle = open(file, mode)
+    return handle
+
+
+def detect_matrix(handle, reader):
+    first_row = next(reader)[1:]
+    first_column = [row[0] for row in reader]
+    handle.seek(0, 0)
+    return first_row == first_column
+
+
+if __name__ == '__main__':
+    main()
