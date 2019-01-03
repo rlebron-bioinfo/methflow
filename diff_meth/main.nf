@@ -96,17 +96,19 @@ try {
             "============================================================"
 }
 
-/*
- * 
+process validateInput {    
+    input:
+    file f_fasta from fasta1_2
+    file s_fasta from fasta2_2
 
-if(params.reads){
-    Channel
-    .fromFilePairs( params.reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
-    .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nIf this is single-end data, please specify --singleEnd on the command line." }
-    .into { read_files_fastqc; read_files_trimming }
-} else {
-    exit 1, "Cannot find any FASTQ file. Please use --reads argument."
+    output:
+    file 'merged_ref.fa' into merged_fasta_1, merged_fasta_2
+
+    script:
+    """
+    cat $f_fasta $s_fasta \\
+    | fasta_formatter | fasta_formatter -t \\
+    | sort -k1,1V | uniq | sed \'s/^/>/g\' | sed -e \'s/[\\t]/\\n/g\' \\
+    | fasta_formatter -w 70 > merged_ref.fa
+    """
 }
-
- */
-

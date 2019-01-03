@@ -28,6 +28,7 @@ Bootstrap:docker
     /opt/conda/bin/conda env update -n root -f /env/data_dump.yml 
     /opt/conda/bin/conda env update -n root -f /env/tools.yml 
     /opt/conda/bin/conda install --yes -c conda-forge ncurses=6.1 
+    /opt/conda/bin/conda install --yes -c anaconda gcc_linux-64=7.3.0 gxx_linux-64=7.3.0 gfortran_linux-64=7.3.0 
     /opt/conda/bin/conda clean -y --all 
     /opt/conda/opt/gatk-3.8/gatk3-register.sh /root/GenomeAnalysisTK.jar
     /opt/conda/bin/cpanm inc::latest
