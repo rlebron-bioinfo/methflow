@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import logging, click
-import os, sys
+import pathlib, os, sys
 import csv, gzip, bz2
 
 prog = 'check_comparisons'
@@ -27,11 +27,27 @@ logger.addHandler(logfile)
 @click.option('--ignore-upper/--no-ignore-upper', is_flag=True, default=False)
 @click.option('--ignore-diagonal/--no-ignore-diagonal', is_flag=True, default=True)
 @click.option('--ignore-lower/--no-ignore-lower', is_flag=True, default=False)
-@click.option('__input', required=True, prompt=False, type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True))
-@click.option('__output', required=True, prompt=False, type=click.Path(exists=False, writable=True, resolve_path=True))
+@click.option('--comprehensive/--no-comprehensive', is_flag=True, default=False)
+@click.option('-c', '__input', required=True, prompt=False, type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True))
+@click.option('-g', '__groups', required=False, prompt=False, type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True))
+@click.option('-i', '__indir', required=True, prompt=False, type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True, resolve_path=True))
+@click.option('-o','__output', required=True, prompt=False, type=click.Path(exists=False, writable=True, resolve_path=True))
 @click.version_option(version=version)
-def main(ignore_upper, ignore_diagonal, ignore_lower, __input, __output):
-    # TO DO: CHECK PATHS - indir
+def main(ignore_upper, ignore_diagonal, ignore_lower, comprehensive, __input, __groups, __indir, __output):
+    if __groups:
+        __groups = dict()
+        handle = open(__groups, 'rt')
+        reader = csv.reader(handle, delimiter='\t')
+        for row in reader:
+            if not row[0].startswith('#'):
+                label, groups = row
+                groups = groups.split(';')
+                for group in groups:
+                    __groups[group] = label
+        handle.close()
+
+    if all([ignore_upper, ignore_diagonal, ignore_lower]):
+        abort()
 
     i_handle = open_handle(__input, mode='rt')
     i_reader = csv.reader(i_handle, delimiter='\t')
@@ -43,14 +59,55 @@ def main(ignore_upper, ignore_diagonal, ignore_lower, __input, __output):
         upper = dict()
         diagonal = dict()
         lower = dict()
-        cols = (next(i_reader)[1:]
-        n_row = 0
-        for row in i_reader:
-            n_col = cols.
-            n_row += 1
-    else:
-        pass
+        cols = next(i_reader)[1:]
+        for n_row, row in enumerate(i_reader):
+            row_label = row[0]
+            upper[row_label] = dict()
+            diagonal[row_label] = dict()
+            lower[row_label] = dict()
+            for n_col, col in enumerate(row[1:]):
+                n_col = n_col-1
+                col_label = cols[n_col]
+                if row_label == col_label:
+                    diagonal[row_label] = col
+                elif n_row < n_col:
+                    upper[row_label][col_label] = col
+                elif n_row > n_col:
+                    lower[row_label][col_label] = col
+                else:
+                    abort()
 
+        if not ignore_diagonal:
+            for label in diagonal:
+                if bool(diagonal[label]):
+                    check_path(__indir, label, __groups, comprehensive)
+                    o_writer.writerow([label, label, diagonal[label]])
+
+        if not ignore_upper:
+            for row_label in upper:
+                check_path(__indir, row_label, __groups, comprehensive)
+                for col_label in upper[row_label]:
+                    check_path(__indir, col_label, __groups, comprehensive)
+                    if bool(upper[row_label][col_label]):
+                        o_writer.writerow([row_label, col_label, upper[row_label][col_label]])
+
+        if not ignore_lower:
+            for row_label in lower:
+                check_path(__indir, row_label, __groups, comprehensive)
+                for col_label in lower[row_label]:
+                    check_path(__indir, col_label, __groups, comprehensive)
+                    if bool(lower[row_label][col_label]):
+                        o_writer.writerow([row_label, col_label, lower[row_label][col_label]]) 
+
+    else:
+        for row in i_reader:
+            if not row[0].startswith('#'):
+                row_label, col_label, value = row
+                check_path(__indir, row_label, __groups, comprehensive)
+                check_path(__indir, col_label, __groups, comprehensive)
+                if bool(value):
+                    o_writer.writerow([row_label, col_label, value])
+                    
     i_handle.close()
     o_handle.close()
 
@@ -76,6 +133,35 @@ def detect_matrix(handle, reader):
     first_column = [row[0] for row in reader]
     handle.seek(0, 0)
     return first_row == first_column
+
+
+def check_path(indir, label, groups, comprehensive):
+    if groups:
+        for sample in groups[label]:
+            cg = pathlib.Path(f'{indir}/{sample}/CG.output')
+            if not cg.is_file():
+                abort()
+
+            if comprehensive:
+                chg = pathlib.Path(f'{indir}/{sample}/CHG.output')
+                if not chg.is_file():
+                    abort()
+                chh = pathlib.Path(f'{indir}/{sample}/CHH.output')
+                if not chh.is_file():
+                    abort()
+
+    else:
+        cg = pathlib.Path(f'{indir}/{label}/CG.output')
+        if not cg.is_file():
+            abort()
+
+        if comprehensive:
+            chg = pathlib.Path(f'{indir}/{label}/CHG.output')
+            if not chg.is_file():
+                abort()
+            chh = pathlib.Path(f'{indir}/{label}/CHH.output')
+            if not chh.is_file():
+                abort()
 
 
 if __name__ == '__main__':
