@@ -59,15 +59,17 @@ def main(ignore_upper, ignore_diagonal, ignore_lower, comprehensive, __input, __
         upper = dict()
         diagonal = dict()
         lower = dict()
-        cols = next(i_reader)[1:]
+        for row in i_reader:
+            if len(row) > 1:
+                cols = row[1:]
+                break
         for n_row, row in enumerate(i_reader):
-            if bool(row.strip()):
+            if len(row) > 1:
                 row_label = row[0]
                 upper[row_label] = dict()
                 diagonal[row_label] = dict()
                 lower[row_label] = dict()
                 for n_col, col in enumerate(row[1:]):
-                    n_col = n_col-1
                     col_label = cols[n_col]
                     if row_label == col_label:
                         diagonal[row_label] = col
@@ -77,6 +79,13 @@ def main(ignore_upper, ignore_diagonal, ignore_lower, comprehensive, __input, __
                         lower[row_label][col_label] = col
                     else:
                         abort()
+
+        for row_label in cols:
+            for col_label in cols:
+                if not col_label in upper[row_label]:
+                    upper[row_label][col_label] = ''
+                if not col_label in lower[row_label]:
+                    lower[row_label][col_label] = ''
 
         if not ignore_diagonal:
             for label in diagonal:
@@ -102,7 +111,7 @@ def main(ignore_upper, ignore_diagonal, ignore_lower, comprehensive, __input, __
 
     else:
         for row in i_reader:
-            if bool(row.strip()) and not row[0].startswith('#'):
+            if len(row) > 1 and not row[0].startswith('#'):
                 row_label, col_label, value = row
                 check_path(__indir, row_label, __groups, comprehensive)
                 check_path(__indir, col_label, __groups, comprehensive)
@@ -132,10 +141,10 @@ def open_handle(file, mode='rt'):
 def detect_matrix(handle, reader):
     first_row = []
     for row in reader:
-        if bool(row.strip()):
-            first_row = next(reader)[1:]
+        if len(row) > 1:
+            first_row = row[1:]
             break
-    first_column = [row[0] for row in reader if bool(row.strip())]
+    first_column = [row[0] for row in reader if len(row) > 1]
     handle.seek(0, 0)
     return first_row == first_column
 

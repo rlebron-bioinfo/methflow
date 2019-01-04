@@ -2,5 +2,7 @@ name: methflow-diff_meth-0.0.0
 channels:
   - bioconda
   - conda-forge
+  - anaconda
 dependencies:
   - bioconda::bioconductor-methylkit=1.6.3
+  - anaconda::numpy=1.15.4

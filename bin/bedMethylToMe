@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+
+import argparse
+
+def header(meFile):
+    line = ['#CHROM', 'POS', 'CONTEXT']
+    line += ['Watson METH', 'Watson COVERAGE', 'Watson QUAL']
+    line += ['Crick METH', 'Crick COVERAGE', 'Crick QUAL']
+    meFile.write('\t'.join(line) + '\n')
+
+def isnull(coverage):
+    return True if coverage == '0' else False 
+
+def meth(coverage, methratio):
+    null = isnull(coverage)
+    if null:
+        return ['.', '.']
+    else:
+        coverage, methratio = int(coverage), float(methratio)
+        meth = int((coverage*methratio)/100)
+        return map(str, [meth, coverage])
+
+def readlines(bedMethylFile):
+    lineW, lineC = True, True
+    while all([lineW, lineC]):
+        lineW = bedMethylFile.readline().rstrip('\n').split('\t')
+        lineC = bedMethylFile.readline().rstrip('\n').split('\t')
+        if all([lineW == [''], lineC == ['']]):
+            break
+        yield [lineW, lineC]
+
+def convertlines(lines):
+    for lineW, lineC in lines:
+        chrom, pos, context = lineW[0], lineC[1], 'CG'
+        methW, coverageW, = meth(lineW[9], lineW[10])
+        qualW = '.'   
+        methC, coverageC, = meth(lineC[9], lineC[10])
+        qualC = '.'
+        W = [methW, coverageW, qualW]
+        C = [methC, coverageC, qualC]
+        if W == C == ['.', '.', '.']:
+            continue
+        else:
+            line = [chrom, pos, context]
+            line += W
+            line += C
+            yield line
+
+def writelines(lines, meFile):
+    lines = convertlines(lines)
+    for line in lines:
+        meFile.write('\t'.join(line) + '\n')
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('bedMethylFile', type=argparse.FileType('rt'))
+    parser.add_argument('meFile', type=argparse.FileType('wt'))
+    args = parser.parse_args()
+    header(args.meFile)
+    lines = readlines(args.bedMethylFile)
+    writelines(lines, args.meFile)
+
+if __name__ == '__main__':
+    main()
+
