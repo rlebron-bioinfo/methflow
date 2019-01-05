@@ -25,21 +25,24 @@ if( params.indir ){
     indir = Channel
         .fromPath(params.indir, checkIfExists: true)
         .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
+        .into { indir_1; indir_2 }
 } else {
   exit 1, "No input directory specified!"
 }
 if ( params.comparisons ){
-    fasta = Channel
+    comparisons = Channel
         .fromPath(params.comparisons, checkIfExists: true)
         .ifEmpty { exit 1, "Comparisons file not found: ${params.comparisons}" }
+        .into { comparisons_1; comparisons_2 }
 }
 else {
   exit 1, "No comparisons file specified!"
 }
 if ( params.groups ){
-    fasta = Channel
+    groups = Channel
         .fromPath(params.groups, checkIfExists: true)
         .ifEmpty { exit 1, "Groups file not found: ${params.groups}" }
+        .into { groups_1; groups_2 }
 }
 
 // Has the run name been specified by the user?
@@ -98,17 +101,28 @@ try {
 
 process validateInput {    
     input:
-    file f_fasta from fasta1_2
-    file s_fasta from fasta2_2
+    file comparisons from comparisons_1
+    file groups from groups_1
+    file indir from indir_1
 
     output:
-    file 'merged_ref.fa' into merged_fasta_1, merged_fasta_2
+    file "${comparisons.baseName}.valid" into valid_comparisons_1, valid_comparisons_2
 
     script:
-    """
-    cat $f_fasta $s_fasta \\
-    | fasta_formatter | fasta_formatter -t \\
-    | sort -k1,1V | uniq | sed \'s/^/>/g\' | sed -e \'s/[\\t]/\\n/g\' \\
-    | fasta_formatter -w 70 > merged_ref.fa
-    """
+    if (params.comprehensive) {
+      comprehensive = "--comprehensive"
+    } else {
+      comprehensive = ""
+    }
+    if (params.groups) {
+      """
+      check_comparisons --ignore-diagonal $comprehensive \
+      -c $comparisons -g $groups -i $indir -o ${comparisons.baseName}.valid
+      """
+    } else{
+      """
+      check_comparisons --ignore-diagonal $comprehensive \
+      -c $comparisons -i $indir -o ${comparisons.baseName}.valid
+      """
+    }
 }
