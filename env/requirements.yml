@@ -15,6 +15,7 @@ dependencies:
   - conda-forge::perl=5.26.2
   - anaconda::openjdk=8.0.152
   - r::r-base=3.5.1
+  - r::r-rjson=0.2.20
   - conda-forge::ncurses=6.1
   - bioconda::perl-app-cpanminus=1.7044
   - anaconda::libgd=2.2.5
