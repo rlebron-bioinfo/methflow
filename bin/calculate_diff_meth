@@ -61,7 +61,7 @@ if (length(file.list) >= 3) {
 
 }
 
-myDiff = calculateDiffMeth(meth, mc.cores = cores)
+myDiff = calculateDiffMeth(meth, adjust = "BH", slim = FALSE, weighted.mean = TRUE, mc.cores = cores)
 myDiff.hyper = getMethylDiff(myDiff, difference = difference, qvalue = qvalue, type = "hyper")
 myDiff.hypo = getMethylDiff(myDiff, difference = difference, qvalue = qvalue, type = "hypo")
 
