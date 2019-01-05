@@ -13,12 +13,13 @@ data <- fromJSON(file = args[1])
 file.list <- as.list(data$path)
 sample.id <- as.list(data$id)
 assembly <- data$assembly
-treatment <- data$treatment
+treatment <- data$groups
 context <- data$context
 cores <- data$cores
 output <- data$output
-difference <- data$difference
-qvalue <- data$qvalue
+lo.count <- data$minCoverage
+difference <- data$minDiffMeth
+qvalue <- data$minQvalue
 
 myobj = methRead(
   file.list,
@@ -30,7 +31,7 @@ myobj = methRead(
 
 filtered.myobj = filterByCoverage(
   myobj,
-  lo.count = 10,
+  lo.count = lo.count,
   lo.perc = NULL,
   hi.count = NULL,
   hi.perc = NULL
