@@ -40,12 +40,12 @@ meth = unite(filtered.myobj, destrand = FALSE)
 
 setwd(output)
 
-pdf("correlation.pdf")
-getCorrelation(meth,plot = TRUE)
-dev.off()
-
 if (length(file.list) >= 3) {
   
+  pdf("correlation.pdf")
+  getCorrelation(meth,plot = TRUE)
+  dev.off()
+
   pdf("clustering.pdf")
   clusterSamples(meth, dist = "correlation", method = "ward", plot = TRUE)
   dev.off()
