@@ -43,6 +43,8 @@ if ( params.groups ){
         .fromPath(params.groups, checkIfExists: true)
         .ifEmpty { exit 1, "Groups file not found: ${params.groups}" }
         .into { groups_1; groups_2 }
+} else {
+    groups = Channel.from(false).into{ groups_1; groups_2 }
 }
 
 // Has the run name been specified by the user?
