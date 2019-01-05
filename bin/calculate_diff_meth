@@ -1,10 +1,93 @@
 #!/usr/bin/env Rscript
 
-args = commandArgs(trailingOnly=TRUE)
+args = commandArgs(trailingOnly = TRUE)
 
-if (length(args)!=1) {
-  stop("config.json required!", call.=FALSE)
+if (length(args) != 1) {
+  stop("config.json required!", call. = FALSE)
 }
 
-library("rjson")
-json_data <- fromJSON(file=args[1])
+library(methylKit)
+library(rjson)
+
+data <- fromJSON(file = args[1])
+file.list <- as.list(data$path)
+sample.id <- as.list(data$id)
+assembly <- data$assembly
+treatment <- data$treatment
+context <- data$context
+cores <- data$cores
+output <- data$output
+difference <- data$difference
+qvalue <- data$qvalue
+
+myobj = methRead(
+  file.list,
+  sample.id = sample.id,
+  assembly = assembly,
+  treatment = treatment,
+  context = context
+)
+
+filtered.myobj = filterByCoverage(
+  myobj,
+  lo.count = 10,
+  lo.perc = NULL,
+  hi.count = NULL,
+  hi.perc = NULL
+)
+
+meth = unite(filtered.myobj, destrand = FALSE)
+
+setwd(output)
+
+pdf("correlation.pdf")
+getCorrelation(meth,plot = TRUE)
+dev.off()
+
+if (length(file.list) >= 3) {
+  
+  pdf("clustering.pdf")
+  clusterSamples(meth, dist = "correlation", method = "ward", plot = TRUE)
+  dev.off()
+
+  pdf("PCA.pdf")
+  PCASamples(meth, screeplot = TRUE)
+  dev.off()
+
+  pdf("PC1_PC2.pdf")
+  PCASamples(meth)
+  dev.off()
+
+}
+
+myDiff = calculateDiffMeth(meth, mc.cores = cores)
+myDiff.hyper = getMethylDiff(myDiff, difference = difference, qvalue = qvalue, type = "hyper")
+myDiff.hypo = getMethylDiff(myDiff, difference = difference, qvalue = qvalue, type = "hypo")
+
+write.table(
+  myDiff.hyper,
+  file = "hyper_meth.txt",
+  append = FALSE,
+  quote = FALSE,
+  sep = "\t",
+  eol = "\n",
+  na = "NA",
+  dec = ".",
+  row.names = TRUE,
+  col.names = TRUE,
+  fileEncoding = "UTF-8"
+)
+
+write.table(
+  myDiff.hypo,
+  file = "hypo_meth.txt",
+  append = FALSE,
+  quote = FALSE,
+  sep = "\t",
+  eol = "\n",
+  na = "NA",
+  dec = ".",
+  row.names = TRUE,
+  col.names = TRUE,
+  fileEncoding = "UTF-8"
+)
