@@ -35,7 +35,7 @@ logger.addHandler(logfile)
 @click.version_option(version=version)
 def main(ignore_upper, ignore_diagonal, ignore_lower, comprehensive, __input, __groups, __indir, __output):
     if __groups:
-        __groups = dict()
+        tmp = dict()
         handle = open(__groups, 'rt')
         reader = csv.reader(handle, delimiter='\t')
         for row in reader:
@@ -43,8 +43,9 @@ def main(ignore_upper, ignore_diagonal, ignore_lower, comprehensive, __input, __
                 label, groups = row
                 groups = groups.split(';')
                 for group in groups:
-                    __groups[group] = label
+                    tmp[group] = label
         handle.close()
+        __groups = tmp
 
     if all([ignore_upper, ignore_diagonal, ignore_lower]):
         abort()
