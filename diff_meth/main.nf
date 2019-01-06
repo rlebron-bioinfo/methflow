@@ -151,7 +151,6 @@ if(params.flatten){
         script:
         """
         mkdir flat_input
-        cd $indir
         cp `find -L $indir -name \"*CG.output\"` flat_input/
         cp `find -L $indir -name \"*CHG.output\"` flat_input/
         cp `find -L $indir -name \"*CHH.output\"` flat_input/
