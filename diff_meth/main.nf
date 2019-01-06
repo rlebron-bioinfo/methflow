@@ -127,12 +127,13 @@ process convertToMethylKit {
     cg_tmp = "${indir.baseName}.CG.tmp"
     cg_file = "${indir.baseName}.CG.mk"
 
-    if (params.comprehensive) {
-      chg_tmp = "${indir.baseName}.CHG.tmp"
-      chg_file = "${indir.baseName}.CHG.mk"
+    chg_tmp = "${indir.baseName}.CHG.tmp"
+    chg_file = "${indir.baseName}.CHG.mk"
 
-      chh_tmp = "${indir.baseName}.CHH.tmp"
-      chh_file = "${indir.baseName}.CHH.mk"
+    chh_tmp = "${indir.baseName}.CHH.tmp"
+    chh_file = "${indir.baseName}.CHH.mk"
+
+    if (params.comprehensive) {
 
       """
       grep -v \"#\" \"$indir/CG.output\" \\
