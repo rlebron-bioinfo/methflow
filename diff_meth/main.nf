@@ -81,6 +81,7 @@ summary['Minimal Coverage'] = params.minCoverage
 summary['Minimal Diff Meth'] = params.minDiffMeth
 summary['Q-value threshold'] = params.qval
 summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
+summary['Save Intermeds'] = params.saveIntermediates ? 'Yes' : 'No'
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time
@@ -111,4 +112,37 @@ try {
             "  Pipeline execution will continue, but things may break.\n" +
             "  Please run `nextflow self-update` to update Nextflow.\n" +
             "============================================================"
+}
+
+/*
+ * STEP 0 - Flatten Input Directories
+ */
+
+if(params.flatten){
+    process flattenInputDirectories {
+        publishDir path: { params.saveIntermediates ? "${params.outdir}/flat_input" : params.outdir },
+          saveAs: {filename ->
+            if (filename.indexOf(".CG.output") > 0) "$filename"
+            else if (filename.indexOf(".CHG.output") > 0) "$filename"
+            else if (filename.indexOf(".CHH.output") > 0) "$filename"
+            else params.saveTrimmed ? filename : null
+          }, mode: 'copy'
+
+        input:
+        file indir from indir.collect()
+
+        output:
+        file "flat_input/*" into bismark_index
+
+        script:
+        if (params.comprehensive) {
+          """
+          meFlatten --indir $indir --outdir flat_input --comprehensive
+          """
+        } else {
+          """
+          meFlatten --indir $indir --outdir flat_input --no-comprehensive
+          """
+        }
+    }
 }
