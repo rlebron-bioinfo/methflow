@@ -39,8 +39,59 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
         abort()
     elif not os.path.exists(outdir):
         os.makedirs(outdir)
+
+    if all([ignore_upper, ignore_diagonal, ignore_lower]):
+        abort()
+
+    g_handle = open(groups, 'rt')
+    g_reader = csv.reader(g_handle, delimiter='\t')
+    groups_dict = dict()
+    for row in g_reader:
+        if not row[0].startswith('#'):
+            sample, labels = row
+            labels = labels.split(';')
+            for label in labels:
+                groups_dict[label] = sample
+    g_handle.close()
+
+    c_handle = open_handle(comparisons, mode='rt')
+    c_reader = csv.reader(c_handle, delimiter='\t')
+
+    is_matrix = detect_matrix(c_handle, c_reader)
+
+    if is_matrix:
+        comparisons_dict = dict()
+        for row in c_reader:
+            if len(row) > 1:
+                cols = row[1:]
+                break
+        for n_row, row in enumerate(c_reader):
+            if len(row) > 1:
+                row_label = row[0]
+                if row_label not in comparisons_dict:
+                    comparisons_dict[row_label] = set()
+                for n_col, col in enumerate(row[1:]):
+                    col_label = cols[n_col]
+                    if col_label not in comparisons_dict:
+                        comparisons_dict[col_label] = set()
+                    if all([row_label == col_label, not ignore_diagonal]):
+                        comparisons_dict[row_label].add(col_label)
+                    elif all([n_row < n_col, not ignore_upper]):
+                        comparisons_dict[row_label].add(col_label)
+                    elif all([n_row > n_col, not ignore_lower]):
+                        comparisons_dict[col_label].add(row_label)
+
+    else:
+        comparisons_dict = dict()
+        for row in c_reader:
+            if len(row) > 1 and not row[0].startswith('#'):
+                row_label, col_label, value = row
+                if row_label not in comparisons_dict:
+                    comparisons_dict[row_label] = set()
+                if all([bool(value), row_label not in comparisons_dict.get(col_label, set())]):
+                    comparisons_dict[row_label].add(col_label)
     
-    pass
+    c_handle.close()
 
 
 def abort():
@@ -57,6 +108,17 @@ def open_handle(file, mode='rt'):
     else:
         handle = open(file, mode)
     return handle
+
+
+def detect_matrix(handle, reader):
+    first_row = []
+    for row in reader:
+        if len(row) > 1:
+            first_row = row[1:]
+            break
+    first_column = [row[0] for row in reader if len(row) > 1]
+    handle.seek(0, 0)
+    return first_row == first_column
 
 
 if __name__ == '__main__':
