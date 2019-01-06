@@ -203,17 +203,18 @@ if(params.flatten){
       """
       #!/usr/bin/env python3
 
-      import shlex
+      import os, shlex
       from subprocess import Popen, PIPE
 
       infile = \"${infile}\"
+      outfile = infile.replace(\".output.sorted\", \".mk\")
 
       if infile.endswith(\"CG.output.sorted\"):
-        cmd = \"meToMethylKit --infile infile --outfile infile.replace(\".output.sorted\", \".mk\") --context CG --destrand\"
+        cmd = f\"meToMethylKit --infile {infile} --outfile {outfile} --context CG --destrand\"
       elif infile.endswith(\"CHG.output.sorted\"):
-        cmd = \"meToMethylKit --infile infile --outfile infile.replace(\".output.sorted\", \".mk\") --context CHG\"
+        cmd = f\"meToMethylKit --infile {infile} --outfile {outfile} --context CHG\"
       elif infile.endswith(\"CHH.output.sorted\"):
-        cmd = \"meToMethylKit --infile infile --outfile infile.replace(\".output.sorted\", \".mk\") --context CHH\"
+        cmd = f\"meToMethylKit --infile {infile} --outfile {outfile} --context CHH\"
       else:
         raise Exception(\"Unknown context!\")
 
