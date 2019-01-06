@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+
+import logging, click
+import os, sys, shutil
+
+prog = 'meMerge'
+version = '0.0.0'
+
+logger = logging.getLogger(prog)
+logger.setLevel(logging.DEBUG)
+format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+formatter = logging.Formatter(format)
+
+logstream = logging.StreamHandler()
+logstream.setLevel(logging.DEBUG)
+logstream.setFormatter(formatter)
+logger.addHandler(logstream)
+
+logfile = logging.FileHandler('meMerge.log')
+logfile.setLevel(logging.DEBUG)
+logfile.setFormatter(formatter)
+logger.addHandler(logfile)
+
+
+@click.command()
+@click.option('-i', '--indir', required=True, prompt=False, type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True, resolve_path=True))
+@click.option('-o', '--outdir', required=True, prompt=False, type=click.Path(exists=False, writable=True, resolve_path=True))
+@click.option('--comprehensive/--no-comprehensive', is_flag=True, default=False)
+@click.version_option(version=version)
+def main(indir, outdir, comprehensive):
+    if os.path.isfile(outdir):
+        abort()
+    elif not os.path.exists(outdir):
+        os.makedirs(outdir)
+    
+    if comprehensive:
+        cg = dict()
+        chg = dict()
+        chh = dict()
+        for root, dirs, files in os.walk(indir):
+            for f in files:
+                if f == 'CG.output':
+                    i = open(os.path.join(root, f), 'rt')
+                    for l in i:
+                        if not l.startswith('#'):
+                            chrom, pos, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
+                            ID = f'{pos}@{chrom}'
+                            w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = list(map(int, [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]))
+                            if ID not in cg:
+                                cg[ID] = [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]
+                            else:
+                                cg[ID][2] = ((w_qual * w_cove)/(cg[ID][1] + w_cove)) + ((cg[ID][2] * cg[ID][1])/(cg[ID][1] + w_cove))
+                                cg[ID][5] = ((c_qual * c_cove)/(cg[ID][4] + c_cove)) + ((cg[ID][5] * cg[ID][4])/(cg[ID][4] + c_cove))
+                                cg[ID][0] += w_meth
+                                cg[ID][1] += w_cove
+                                cg[ID][3] += c_meth
+                                cg[ID][4] += c_cove
+                elif f == 'CHG.output':
+                    i = open(os.path.join(root, f), 'rt')
+                    for l in i:
+                        if not l.startswith('#'):
+                            chrom, pos, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
+                            ID = f'{pos}@{chrom}'
+                            w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = list(map(int, [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]))
+                            if ID not in chg:
+                                chg[ID] = [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]
+                            else:
+                                chg[ID][2] = ((w_qual * w_cove)/(chg[ID][1] + w_cove)) + ((chg[ID][2] * chg[ID][1])/(cg[ID][1] + w_cove))
+                                chg[ID][5] = ((c_qual * c_cove)/(chg[ID][4] + c_cove)) + ((chg[ID][5] * chg[ID][4])/(cg[ID][4] + c_cove))
+                                chg[ID][0] += w_meth
+                                chg[ID][1] += w_cove
+                                chg[ID][3] += c_meth
+                                chg[ID][4] += c_cove
+                elif f == 'CHH.output':
+                    i = open(os.path.join(root, f), 'rt')
+                    for l in i:
+                        if not l.startswith('#'):
+                            chrom, pos, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
+                            ID = f'{pos}@{chrom}'
+                            w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = list(map(int, [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]))
+                            if ID not in chh:
+                                chh[ID] = [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]
+                            else:
+                                chh[ID][2] = ((w_qual * w_cove)/(chh[ID][1] + w_cove)) + ((chh[ID][2] * chh[ID][1])/(cg[ID][1] + w_cove))
+                                chh[ID][5] = ((c_qual * c_cove)/(chh[ID][4] + c_cove)) + ((chh[ID][5] * chh[ID][4])/(cg[ID][4] + c_cove))
+                                chh[ID][0] += w_meth
+                                chh[ID][1] += w_cove
+                                chh[ID][3] += c_meth
+                                chh[ID][4] += c_cove
+        cg_outfile = open(os.path.join(outdir, 'CG.output'), 'wt')
+        for ID in cg:
+            line = ID.split('@')[::-1] + list(map(int, cg[ID]))
+            line = '\t'.join(list(map(str, line))) + '\n'
+            cg_outfile.write(line)
+        cg_outfile.close()
+        chg_outfile = open(os.path.join(outdir, 'CHG.output'), 'wt')
+        for ID in chg:
+            line = ID.split('@')[::-1] + list(map(int, chg[ID]))
+            line = '\t'.join(list(map(str, line))) + '\n'
+            chg_outfile.write(line)
+        chg_outfile.close() 
+        chh_outfile = open(os.path.join(outdir, 'CHH.output'), 'wt')
+        for ID in chh:
+            line = ID.split('@')[::-1] + list(map(int, chh[ID]))
+            line = '\t'.join(list(map(str, line))) + '\n'
+            chh_outfile.write(line)
+        chh_outfile.close() 
+
+    else:
+        cg = dict()
+        for root, dirs, files in os.walk(indir):
+            for f in files:
+                if f == 'CG.output':
+                    i = open(os.path.join(root, f), 'rt')
+                    for l in i:
+                        if not l.startswith('#'):
+                            chrom, pos, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
+                            ID = f'{pos}@{chrom}'
+                            w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = list(map(int, [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]))
+                            if ID not in cg:
+                                cg[ID] = [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]
+                            else:
+                                cg[ID][2] = ((w_qual * w_cove)/(cg[ID][1] + w_cove)) + ((cg[ID][2] * cg[ID][1])/(cg[ID][1] + w_cove))
+                                cg[ID][5] = ((c_qual * c_cove)/(cg[ID][4] + c_cove)) + ((cg[ID][5] * cg[ID][4])/(cg[ID][4] + c_cove))
+                                cg[ID][0] += w_meth
+                                cg[ID][1] += w_cove
+                                cg[ID][3] += c_meth
+                                cg[ID][4] += c_cove
+        cg_outfile = open(os.path.join(outdir, 'CG.output'), 'wt')
+        for ID in cg:
+            line = ID.split('@')[::-1] + list(map(int, cg[ID]))
+            line = '\t'.join(list(map(str, line))) + '\n'
+            cg_outfile.write(line)
+        cg_outfile.close() 
+
+
+def abort():
+    logger.error(f'aborting program...')
+    sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
