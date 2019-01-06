@@ -24,7 +24,7 @@ params.groups = false
 
 if( params.indir ){
   indir = Channel
-  .fromFilePairs( params.indir, checkIfExists: true, size: 1 )
+  .fromPath(params.indir, checkIfExists: true)
   .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
 } else {
   exit 1, "No input directory specified!"
