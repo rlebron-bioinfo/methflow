@@ -114,7 +114,7 @@ try {
 
 process convertToMethylKit {    
   input:
-  file indir from me_dirs
+  file indir from indir
 
   output:
   file "${indir.baseName}.CG.mk" into cg_file
