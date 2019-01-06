@@ -49,8 +49,12 @@ def main(indir, outdir, comprehensive):
                             if ID not in cg:
                                 cg[ID] = [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]
                             else:
-                                cg[ID][2] = ((w_qual * w_cove)/(cg[ID][1] + w_cove)) + ((cg[ID][2] * cg[ID][1])/(cg[ID][1] + w_cove))
-                                cg[ID][5] = ((c_qual * c_cove)/(cg[ID][4] + c_cove)) + ((cg[ID][5] * cg[ID][4])/(cg[ID][4] + c_cove))
+                                w_A = ((w_qual * w_cove)/(cg[ID][1] + w_cove)) if (cg[ID][1] + w_cove) != 0 else 0
+                                w_B = ((cg[ID][2] * cg[ID][1])/(cg[ID][1] + w_cove)) if (cg[ID][1] + w_cove) != 0 else 0
+                                c_A = ((c_qual * c_cove)/(cg[ID][4] + c_cove)) if (cg[ID][4] + c_cove) != 0 else 0
+                                c_B = ((cg[ID][5] * cg[ID][4])/(cg[ID][4] + c_cove)) if (cg[ID][4] + c_cove) != 0 else 0
+                                cg[ID][2] = w_A + w_B
+                                cg[ID][5] = c_A + c_B 
                                 cg[ID][0] += w_meth
                                 cg[ID][1] += w_cove
                                 cg[ID][3] += c_meth
@@ -65,8 +69,12 @@ def main(indir, outdir, comprehensive):
                             if ID not in chg:
                                 chg[ID] = [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]
                             else:
-                                chg[ID][2] = ((w_qual * w_cove)/(chg[ID][1] + w_cove)) + ((chg[ID][2] * chg[ID][1])/(cg[ID][1] + w_cove))
-                                chg[ID][5] = ((c_qual * c_cove)/(chg[ID][4] + c_cove)) + ((chg[ID][5] * chg[ID][4])/(cg[ID][4] + c_cove))
+                                w_A = ((w_qual * w_cove)/(chg[ID][1] + w_cove)) if (chg[ID][1] + w_cove) != 0 else 0
+                                w_B = ((chg[ID][2] * chg[ID][1])/(chg[ID][1] + w_cove)) if (chg[ID][1] + w_cove) != 0 else 0
+                                c_A = ((c_qual * c_cove)/(chg[ID][4] + c_cove)) if (chg[ID][4] + c_cove) != 0 else 0
+                                c_B = ((chg[ID][5] * chg[ID][4])/(chg[ID][4] + c_cove)) if (chg[ID][4] + c_cove) != 0 else 0
+                                chg[ID][2] = w_A + w_B
+                                chg[ID][5] = c_A + c_B 
                                 chg[ID][0] += w_meth
                                 chg[ID][1] += w_cove
                                 chg[ID][3] += c_meth
@@ -81,8 +89,12 @@ def main(indir, outdir, comprehensive):
                             if ID not in chh:
                                 chh[ID] = [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]
                             else:
-                                chh[ID][2] = ((w_qual * w_cove)/(chh[ID][1] + w_cove)) + ((chh[ID][2] * chh[ID][1])/(cg[ID][1] + w_cove))
-                                chh[ID][5] = ((c_qual * c_cove)/(chh[ID][4] + c_cove)) + ((chh[ID][5] * chh[ID][4])/(cg[ID][4] + c_cove))
+                                w_A = ((w_qual * w_cove)/(chh[ID][1] + w_cove)) if (chh[ID][1] + w_cove) != 0 else 0
+                                w_B = ((chh[ID][2] * chh[ID][1])/(chh[ID][1] + w_cove)) if (chh[ID][1] + w_cove) != 0 else 0
+                                c_A = ((c_qual * c_cove)/(chh[ID][4] + c_cove)) if (chh[ID][4] + c_cove) != 0 else 0
+                                c_B = ((chh[ID][5] * chh[ID][4])/(chh[ID][4] + c_cove)) if (chh[ID][4] + c_cove) != 0 else 0
+                                chh[ID][2] = w_A + w_B
+                                chh[ID][5] = c_A + c_B 
                                 chh[ID][0] += w_meth
                                 chh[ID][1] += w_cove
                                 chh[ID][3] += c_meth
@@ -120,8 +132,12 @@ def main(indir, outdir, comprehensive):
                             if ID not in cg:
                                 cg[ID] = [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]
                             else:
-                                cg[ID][2] = ((w_qual * w_cove)/(cg[ID][1] + w_cove)) + ((cg[ID][2] * cg[ID][1])/(cg[ID][1] + w_cove))
-                                cg[ID][5] = ((c_qual * c_cove)/(cg[ID][4] + c_cove)) + ((cg[ID][5] * cg[ID][4])/(cg[ID][4] + c_cove))
+                                w_A = ((w_qual * w_cove)/(cg[ID][1] + w_cove)) if (cg[ID][1] + w_cove) != 0 else 0
+                                w_B = ((cg[ID][2] * cg[ID][1])/(cg[ID][1] + w_cove)) if (cg[ID][1] + w_cove) != 0 else 0
+                                c_A = ((c_qual * c_cove)/(cg[ID][4] + c_cove)) if (cg[ID][4] + c_cove) != 0 else 0
+                                c_B = ((cg[ID][5] * cg[ID][4])/(cg[ID][4] + c_cove)) if (cg[ID][4] + c_cove) != 0 else 0
+                                cg[ID][2] = w_A + w_B
+                                cg[ID][5] = c_A + c_B 
                                 cg[ID][0] += w_meth
                                 cg[ID][1] += w_cove
                                 cg[ID][3] += c_meth
