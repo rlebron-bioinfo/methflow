@@ -42,7 +42,7 @@ def main(indir, outdir, comprehensive):
                     else:
                         basename = os.path.basename(root)
                     current_path = os.path.join(root, f)
-                    new_path = os.path.join(outdir, basename + f)
+                    new_path = os.path.join(outdir, f'{basename}.{f}')
                     shutil.copy2(current_path, new_path)
     else:
         for root, dirs, files in os.walk(indir):
@@ -53,7 +53,7 @@ def main(indir, outdir, comprehensive):
                     else:
                         basename = os.path.basename(root)
                     current_path = os.path.join(root, f)
-                    new_path = os.path.join(outdir, basename + f)
+                    new_path = os.path.join(outdir, f'{basename}.{f}')
                     shutil.copy2(current_path, new_path)
 
 

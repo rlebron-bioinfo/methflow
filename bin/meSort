@@ -58,7 +58,7 @@ def main(__input, __output, isfile, comprehensive):
                         else:
                             basename = os.path.basename(root)
                         current_path = os.path.join(root, f)
-                        new_path = os.path.join(__output, basename + f)
+                        new_path = os.path.join(__output, f'{basename}.{f}')
                         i = open(current_path, 'rt')
                         o = open(new_path, 'wt')
                         header = i.readline()
@@ -77,7 +77,7 @@ def main(__input, __output, isfile, comprehensive):
                         else:
                             basename = os.path.basename(root)
                         current_path = os.path.join(root, f)
-                        new_path = os.path.join(__output, basename + f)
+                        new_path = os.path.join(__output, f'{basename}.{f}')
                         i = open(current_path, 'rt')
                         o = open(new_path, 'wt')
                         header = i.readline()
