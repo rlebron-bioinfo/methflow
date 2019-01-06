@@ -255,6 +255,7 @@ if(params.flatten){
         --indir profiles \\
         --comparisons $comparisons \\
         --groups $groups \\
-        $comprehensive
+        $comprehensive \\
+        --outdir .
       """
   }
