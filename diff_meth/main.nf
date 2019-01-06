@@ -24,9 +24,8 @@ params.groups = false
 
 if( params.indir ){
     indir = Channel
-        .fromPath(params.indir, checkIfExists: true)
+        .fromPath("${params.indir}/*", checkIfExists: true)
         .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
-        .into { indir_1; indir_2 }
 } else {
   exit 1, "No input directory specified!"
 }
@@ -35,7 +34,6 @@ if ( params.comparisons ){
     comparisons = Channel
         .fromPath(params.comparisons, checkIfExists: true)
         .ifEmpty { exit 1, "Comparisons file not found: ${params.comparisons}" }
-        .into { comparisons_1; comparisons_2 }
 }
 else {
   exit 1, "No comparisons file specified!"
@@ -45,7 +43,6 @@ if ( params.groups ){
     groups = Channel
         .fromPath(params.groups, checkIfExists: true)
         .ifEmpty { exit 1, "Groups file not found: ${params.groups}" }
-        .into { groups_1; groups_2 }
 else {
   exit 1, "No groups file specified!"
 }
@@ -55,7 +52,6 @@ if ( params.clusters ){
       fasta = Channel
           .fromPath(params.fasta, checkIfExists: true)
           .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
-          .into { fasta_1; fasta_2 }
   }
   else {
       exit 1, "No Fasta reference specified! This is required by GenomeCluster."
@@ -120,19 +116,48 @@ try {
 
 process convertToMethylKit {    
     input:
-    file indir from indir_1
+    file indir from indir
 
     output:
-    file "methylation_call" into methylation_call_1, methylation_call_2
+    file "${indir.baseName}.CG.mk" into cg_file
+    file "${indir.baseName}.CHG.mk" into chg_file
+    file "${indir.baseName}.CHH.mk" into chh_file
 
     script:
+    cg_file = "${indir.baseName}.CG.mk"
+
     if (params.comprehensive) {
-      comprehensive = "--comprehensive"
-    } else {
-      comprehensive = ""
-    }
-    """
+      chg_file = "${indir.baseName}.CHG.mk"
+      chh_file = "${indir.baseName}.CHH.mk"
+
+      """
+      meToMethylKit
+        --infile \"$indir/CG.output\" \\
+        --outfile \"$cg_file\" \\
+        --context CG \\
+        --destrand
+
+      meToMethylKit
+        --infile \"$indir/CHG.output\" \\
+        --outfile \"$chg_file\" \\
+        --context CHG
+
+      meToMethylKit
+        --infile \"$indir/CHH.output\" \\
+        --outfile \"$chh_file\" \\
+        --context CHH
+      """
     
-    """
+    } else {
+
+      """
+      meToMethylKit
+        --infile \"$indir/CG.output\" \\
+        --outfile \"$cg_file\" \\
+        --context CG \\
+        --destrand
+      """
+    
     }
+
 }
