@@ -206,12 +206,14 @@ if(params.flatten){
       import shlex
       from subprocess import Popen, PIPE
 
-      if ${infile}.endswith(\"CG.output.sorted\"):
-        cmd = \"meToMethylKit --infile $infile --outfile ${infile}.replace(\".output.sorted\", \".mk\") --context CG --destrand\"
-      elif ${infile}.endswith(\"CHG.output.sorted\"):
-        cmd = \"meToMethylKit --infile $infile --outfile ${infile}.replace(\".output.sorted\", \".mk\") --context CHG\"
-      elif ${infile}.endswith(\"CHH.output.sorted\"):
-        cmd = \"meToMethylKit --infile $infile --outfile ${infile}.replace(\".output.sorted\", \".mk\") --context CHH\"
+      infile = \"${infile}\"
+
+      if infile.endswith(\"CG.output.sorted\"):
+        cmd = \"meToMethylKit --infile infile --outfile infile.replace(\".output.sorted\", \".mk\") --context CG --destrand\"
+      elif infile.endswith(\"CHG.output.sorted\"):
+        cmd = \"meToMethylKit --infile infile --outfile infile.replace(\".output.sorted\", \".mk\") --context CHG\"
+      elif infile.endswith(\"CHH.output.sorted\"):
+        cmd = \"meToMethylKit --infile infile --outfile infile.replace(\".output.sorted\", \".mk\") --context CHH\"
       else:
         raise Exception(\"Unknown context!\")
 
