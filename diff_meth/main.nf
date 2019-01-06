@@ -21,6 +21,7 @@ params.groups = false
 
 
 // Validate inputs
+
 if( params.indir ){
     indir = Channel
         .fromPath(params.indir, checkIfExists: true)
@@ -29,6 +30,7 @@ if( params.indir ){
 } else {
   exit 1, "No input directory specified!"
 }
+
 if ( params.comparisons ){
     comparisons = Channel
         .fromPath(params.comparisons, checkIfExists: true)
@@ -38,13 +40,25 @@ if ( params.comparisons ){
 else {
   exit 1, "No comparisons file specified!"
 }
+
 if ( params.groups ){
     groups = Channel
         .fromPath(params.groups, checkIfExists: true)
         .ifEmpty { exit 1, "Groups file not found: ${params.groups}" }
         .into { groups_1; groups_2 }
-} else {
-    groups = Channel.from(false).into{ groups_1; groups_2 }
+else {
+  exit 1, "No groups file specified!"
+}
+
+if ( params.clusters ){
+  if ( params.fasta ){
+      fasta = Channel
+          .fromPath(params.fasta, checkIfExists: true)
+          .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
+  }
+  else {
+      exit 1, "No Fasta reference specified! This is required by GenomeCluster."
+  }
 }
 
 // Has the run name been specified by the user?
@@ -66,6 +80,8 @@ summary['Input dir'] = params.indir
 summary['Comparisons'] = params.comparisons
 if (params.groups) summary['Groups'] = params.groups
 summary['Clusters'] = params.clusters ? 'Yes' : 'No'
+if (params.clusters) summary['Fasta Ref'] = params.fasta
+summary['Minimal Coverage'] = params.minCoverage
 summary['Minimal Diff Meth'] = params.minDiffMeth
 summary['Q-value threshold'] = params.qval
 summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
