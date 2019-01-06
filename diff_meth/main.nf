@@ -119,6 +119,8 @@ process listDirectories {
   output:
   file "$indir/*" into me_dirs
 
+  """
+  """
 }
 
 process convertToMethylKit {    
