@@ -218,7 +218,7 @@ if(params.flatten){
       else:
         raise Exception(\"Unknown context!\")
 
-      p = Popen(shlex.split(cmd), stdin=stdin, stdout=stdout, stderr=stderr)
+      p = Popen(shlex.split(cmd), stdin=PIPE, stdout=PIPE, stderr=PIPE)
       out, err = p.communicate()
       if p.returncode != 0:
         raise Exception(\"Conversion failed!\")
