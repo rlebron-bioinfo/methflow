@@ -164,3 +164,60 @@ if(params.flatten){
         }
     }
 }
+
+/*
+ * STEP 1 - Sort methylation profiles
+ */
+
+  process sortMethylationProfile {
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/sorted_methylation_profiles" : params.outdir },
+        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+      input:
+      file infile from methylation_profiles
+
+      output:
+      file "*.sorted" into sorted_methylation_profiles
+
+      script:
+      """
+      meSort --input $infile --output ${infile}.sorted --file
+      """
+  }
+
+/*
+ * STEP 2 - Convert to methylKit
+ */
+
+  process convertToMethylKit {
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/methylKit_profiles" : params.outdir },
+        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+      input:
+      file infile from sorted_methylation_profiles
+
+      output:
+      file "*.mk" into methylkit_profiles
+
+      script:
+      """
+      #!/usr/bin/env python3
+
+      import shlex
+      from subprocess import Popen, PIPE
+
+      if ${infile}.endswith(\"CG.output.sorted\"):
+        cmd = \"meToMethylKit --infile $infile --outfile ${infile}.replace(\".output.sorted\", \".mk\") --context CG --destrand\"
+      elif ${infile}.endswith(\"CHG.output.sorted\"):
+        cmd = \"meToMethylKit --infile $infile --outfile ${infile}.replace(\".output.sorted\", \".mk\") --context CHG\"
+      elif ${infile}.endswith(\"CHH.output.sorted\"):
+        cmd = \"meToMethylKit --infile $infile --outfile ${infile}.replace(\".output.sorted\", \".mk\") --context CHH\"
+      else:
+        raise Exception(\"Unknown context!\")
+
+      p = Popen(shlex.split(cmd), stdin=stdin, stdout=stdout, stderr=stderr)
+      out, err = p.communicate()
+      if p.returncode != 0:
+        raise Exception(\"Conversion failed!\")
+      """
+  }
