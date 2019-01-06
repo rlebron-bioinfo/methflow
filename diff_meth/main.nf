@@ -160,6 +160,5 @@ if(params.flatten){
         cp `find $indir -name \"*CHG.output\"` flat_input/
         cp `find $indir -name \"*CHH.output\"` flat_input/
         """
-        }
     }
 }
