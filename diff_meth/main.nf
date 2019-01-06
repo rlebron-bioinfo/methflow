@@ -112,9 +112,11 @@ try {
             "============================================================"
 }
 
+indirs = file(indir).list()
+
 process convertToMethylKit {    
   input:
-  file indir from indir.list()
+  file indir from indirs
 
   output:
   file "${indir.baseName}.CG.mk" into cg_file
