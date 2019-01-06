@@ -24,7 +24,7 @@ params.groups = false
 
 if( params.indir ){
   indir = Channel
-    .fromPath("${params.indir}/*", checkIfExists: true)
+    .fromPath(params.indir, checkIfExists: true)
     .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
 } else {
   exit 1, "No input directory specified!"
@@ -112,71 +112,80 @@ try {
             "============================================================"
 }
 
+process listDirectories {
+  input:
+  file indir from indir
+
+  output:
+  file "$indir/*"
+
+}
+
 process convertToMethylKit {    
-    input:
-    file indir from indir
+  input:
+  file indir from me_dirs
 
-    output:
-    file "${indir.baseName}.CG.mk" into cg_file
-    file "${indir.baseName}.CHG.mk" into chg_file
-    file "${indir.baseName}.CHH.mk" into chh_file
+  output:
+  file "${indir.baseName}.CG.mk" into cg_file
+  file "${indir.baseName}.CHG.mk" into chg_file
+  file "${indir.baseName}.CHH.mk" into chh_file
 
-    script:
-    cg_tmp = "${indir.baseName}.CG.tmp"
-    cg_file = "${indir.baseName}.CG.mk"
+  script:
+  cg_tmp = "${indir.baseName}.CG.tmp"
+  cg_file = "${indir.baseName}.CG.mk"
 
-    chg_tmp = "${indir.baseName}.CHG.tmp"
-    chg_file = "${indir.baseName}.CHG.mk"
+  chg_tmp = "${indir.baseName}.CHG.tmp"
+  chg_file = "${indir.baseName}.CHG.mk"
 
-    chh_tmp = "${indir.baseName}.CHH.tmp"
-    chh_file = "${indir.baseName}.CHH.mk"
+  chh_tmp = "${indir.baseName}.CHH.tmp"
+  chh_file = "${indir.baseName}.CHH.mk"
 
-    if (params.comprehensive) {
+  if (params.comprehensive) {
 
-      """
-      grep -v \"#\" \"$indir/CG.output\" \\
-      | sort -k1,1V -k2,2n \\
-      > \"$cg_tmp\"
+    """
+    grep -v \"#\" \"$indir/CG.output\" \\
+    | sort -k1,1V -k2,2n \\
+    > \"$cg_tmp\"
 
-      meToMethylKit
-        --infile \"$cg_tmp\" \\
-        --outfile \"$cg_file\" \\
-        --context CG \\
-        --destrand
+    meToMethylKit
+      --infile \"$cg_tmp\" \\
+      --outfile \"$cg_file\" \\
+      --context CG \\
+      --destrand
 
-      grep -v \"#\" \"$indir/CHG.output\" \\
-      | sort -k1,1V -k2,2n \\
-      > \"$chg_tmp\"
+    grep -v \"#\" \"$indir/CHG.output\" \\
+    | sort -k1,1V -k2,2n \\
+    > \"$chg_tmp\"
 
-      meToMethylKit
-        --infile \"$chg_tmp\" \\
-        --outfile \"$chg_file\" \\
-        --context CHG
+    meToMethylKit
+      --infile \"$chg_tmp\" \\
+      --outfile \"$chg_file\" \\
+      --context CHG
 
-      grep -v \"#\" \"$indir/CHH.output\" \\
-      | sort -k1,1V -k2,2n \\
-      > \"$chh_tmp\"
+    grep -v \"#\" \"$indir/CHH.output\" \\
+    | sort -k1,1V -k2,2n \\
+    > \"$chh_tmp\"
 
-      meToMethylKit
-        --infile \"$chh_tmp\" \\
-        --outfile \"$chh_file\" \\
-        --context CHH
-      """
-    
-    } else {
+    meToMethylKit
+      --infile \"$chh_tmp\" \\
+      --outfile \"$chh_file\" \\
+      --context CHH
+    """
+  
+  } else {
 
-      """
-      grep -v \"#\" \"$indir/CG.output\" \\
-      | sort -k1,1V -k2,2n \\
-      > \"$cg_tmp\"
+    """
+    grep -v \"#\" \"$indir/CG.output\" \\
+    | sort -k1,1V -k2,2n \\
+    > \"$cg_tmp\"
 
-      meToMethylKit
-        --infile \"$cg_tmp\" \\
-        --outfile \"$cg_file\" \\
-        --context CG \\
-        --destrand
-      """
-    
-    }
+    meToMethylKit
+      --infile \"$cg_tmp\" \\
+      --outfile \"$cg_file\" \\
+      --context CG \\
+      --destrand
+    """
+  
+  }
 
 }
