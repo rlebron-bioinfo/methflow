@@ -36,11 +36,14 @@ def main(__input, __output, isfile, comprehensive):
         o = open(__output, 'wt')
         header = i.readline()
         if not header.startswith('#'):
-            i.seek(0, 0)
+            i.seek(0)
         else:
             o.write(header)
+            o.flush()
         cmd = 'sort -k1,1V -k2,2n'
         exec_cmd(cmd, stdin=i, stdout=o, stderr=PIPE)
+        i.close()
+        o.close()
 
     else:
         if os.path.isfile(__input):
@@ -63,11 +66,14 @@ def main(__input, __output, isfile, comprehensive):
                         o = open(new_path, 'wt')
                         header = i.readline()
                         if not header.startswith('#'):
-                            i.seek(0, 0)
+                            i.seek(0)
                         else:
                             o.write(header)
+                            o.flush()
                         cmd = 'sort -k1,1V -k2,2n'
                         exec_cmd(cmd, stdin=i, stdout=o, stderr=PIPE)
+                        i.close()
+                        o.close()
         else:
             for root, dirs, files in os.walk(__input):
                 for f in files:
@@ -82,11 +88,14 @@ def main(__input, __output, isfile, comprehensive):
                         o = open(new_path, 'wt')
                         header = i.readline()
                         if not header.startswith('#'):
-                            i.seek(0, 0)
+                            i.seek(0)
                         else:
                             o.write(header)
+                            o.flush
                         cmd = 'sort -k1,1V -k2,2n'
                         exec_cmd(cmd, stdin=i, stdout=o, stderr=PIPE)
+                        i.close()
+                        o.close()
 
 
 def exec_cmd(cmd, stdin, stdout, stderr):
