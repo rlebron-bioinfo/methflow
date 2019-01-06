@@ -124,26 +124,42 @@ process convertToMethylKit {
     file "${indir.baseName}.CHH.mk" into chh_file
 
     script:
+    cg_tmp = "${indir.baseName}.CG.tmp"
     cg_file = "${indir.baseName}.CG.mk"
 
     if (params.comprehensive) {
+      chg_tmp = "${indir.baseName}.CHG.tmp"
       chg_file = "${indir.baseName}.CHG.mk"
+
+      chh_tmp = "${indir.baseName}.CHH.tmp"
       chh_file = "${indir.baseName}.CHH.mk"
 
       """
+      grep -v \"#\" \"$indir/CG.output\" \\
+      | sort -k1,1V -k2,2n \\
+      > \"$cg_tmp\"
+
       meToMethylKit
-        --infile \"$indir/CG.output\" \\
+        --infile \"$cg_tmp\" \\
         --outfile \"$cg_file\" \\
         --context CG \\
         --destrand
 
+      grep -v \"#\" \"$indir/CHG.output\" \\
+      | sort -k1,1V -k2,2n \\
+      > \"$chg_tmp\"
+
       meToMethylKit
-        --infile \"$indir/CHG.output\" \\
+        --infile \"$chg_tmp\" \\
         --outfile \"$chg_file\" \\
         --context CHG
 
+      grep -v \"#\" \"$indir/CHH.output\" \\
+      | sort -k1,1V -k2,2n \\
+      > \"$chh_tmp\"
+
       meToMethylKit
-        --infile \"$indir/CHH.output\" \\
+        --infile \"$chh_tmp\" \\
         --outfile \"$chh_file\" \\
         --context CHH
       """
@@ -151,8 +167,12 @@ process convertToMethylKit {
     } else {
 
       """
+      grep -v \"#\" \"$indir/CG.output\" \\
+      | sort -k1,1V -k2,2n \\
+      > \"$cg_tmp\"
+
       meToMethylKit
-        --infile \"$indir/CG.output\" \\
+        --infile \"$cg_tmp\" \\
         --outfile \"$cg_file\" \\
         --context CG \\
         --destrand
