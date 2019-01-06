@@ -112,7 +112,7 @@ try {
             "============================================================"
 }
 
-indirs = file(indir).list()
+indirs = file("${params.indir}/*").list()
 
 process convertToMethylKit {    
   input:
