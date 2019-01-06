@@ -23,27 +23,26 @@ params.groups = false
 // Validate inputs
 
 if( params.indir ){
-    indir = Channel
-        .fromPath("${params.indir}/*", checkIfExists: true)
-        .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
+  indir = Channel
+    .fromPath("${params.indir}/*", checkIfExists: true)
+    .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
 } else {
   exit 1, "No input directory specified!"
 }
 
 if ( params.comparisons ){
-    comparisons = Channel
-        .fromPath(params.comparisons, checkIfExists: true)
-        .ifEmpty { exit 1, "Comparisons file not found: ${params.comparisons}" }
-}
-else {
+  comparisons = Channel
+    .fromPath(params.comparisons, checkIfExists: true)
+    .ifEmpty { exit 1, "Comparisons file not found: ${params.comparisons}" }
+} else {
   exit 1, "No comparisons file specified!"
 }
 
 if ( params.groups ){
-    groups = Channel
-        .fromPath(params.groups, checkIfExists: true)
-        .ifEmpty { exit 1, "Groups file not found: ${params.groups}" }
-else {
+  groups = Channel
+    .fromPath(params.groups, checkIfExists: true)
+    .ifEmpty { exit 1, "Groups file not found: ${params.groups}" }
+} else {
   exit 1, "No groups file specified!"
 }
 
@@ -52,8 +51,7 @@ if ( params.clusters ){
       fasta = Channel
           .fromPath(params.fasta, checkIfExists: true)
           .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
-  }
-  else {
+  } else {
       exit 1, "No Fasta reference specified! This is required by GenomeCluster."
   }
 }
