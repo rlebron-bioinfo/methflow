@@ -120,7 +120,7 @@ try {
 
 if(params.flatten){
     process flattenInputDirectories {
-        publishDir path: { params.saveIntermediates ? "${params.outdir}/flat_input" : params.outdir },
+        publishDir path: { params.saveIntermediates ? "${params.outdir}" : params.outdir },
           saveAs: {filename ->
             if (filename.indexOf(".CG.output") > 0) "$filename"
             else if (filename.indexOf(".CHG.output") > 0) "$filename"
@@ -132,7 +132,7 @@ if(params.flatten){
         file indir from indir.collect()
 
         output:
-        file "flat_input/*" into bismark_index
+        file "flat_input/*" into methylation_profiles
 
         script:
         if (params.comprehensive) {
@@ -143,6 +143,23 @@ if(params.flatten){
           """
           meFlatten --indir $indir --outdir flat_input --no-comprehensive
           """
+        }
+    }
+} else {
+    process getInputDirectories {
+        input:
+        file indir from indir.collect()
+
+        output:
+        file "flat_input/*" into methylation_profiles
+
+        script:
+        """
+        mkdir flat_input
+        cp `find $indir -name \"*CG.output\"` flat_input/
+        cp `find $indir -name \"*CHG.output\"` flat_input/
+        cp `find $indir -name \"*CHH.output\"` flat_input/
+        """
         }
     }
 }
