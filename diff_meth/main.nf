@@ -55,6 +55,7 @@ if ( params.clusters ){
       fasta = Channel
           .fromPath(params.fasta, checkIfExists: true)
           .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
+          .into { fasta_1; fasta_2 }
   }
   else {
       exit 1, "No Fasta reference specified! This is required by GenomeCluster."
@@ -117,14 +118,12 @@ try {
             "============================================================"
 }
 
-process validateInput {    
+process convertToMethylKit {    
     input:
-    file comparisons from comparisons_1
-    file groups from groups_1
     file indir from indir_1
 
     output:
-    file "${comparisons.baseName}.valid" into valid_comparisons_1, valid_comparisons_2
+    file "methylation_call" into methylation_call_1, methylation_call_2
 
     script:
     if (params.comprehensive) {
@@ -132,15 +131,8 @@ process validateInput {
     } else {
       comprehensive = ""
     }
-    if (params.groups) {
-      """
-      check_comparisons --ignore-diagonal $comprehensive \
-      -c $comparisons -g $groups -i $indir -o ${comparisons.baseName}.valid
-      """
-    } else{
-      """
-      check_comparisons --ignore-diagonal $comprehensive \
-      -c $comparisons -i $indir -o ${comparisons.baseName}.valid
-      """
+    """
+    
+    """
     }
 }
