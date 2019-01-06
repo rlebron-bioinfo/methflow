@@ -224,3 +224,37 @@ if(params.flatten){
         raise Exception(\"Conversion failed!\")
       """
   }
+
+/*
+ * STEP 3 - Generate Comparisons Files
+ */
+
+  process generateComparisonsFiles {
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/generate_comparisons_files" : params.outdir },
+        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+      input:
+      file profiles from methylkit_profiles.collect()
+      file comparisons from comparisons
+      file groups from groups
+
+      output:
+      file "*.json" into comparisons_files
+
+      script:
+      if (params.comprehensive) {
+        comprehensive = '--comprehensive'
+      } else {
+        comprehensive = '--no-comprehensive'
+      }
+
+      """
+      mkdir profiles
+      cp $profiles profiles/
+      generate_comparisons_files \\
+        --indir profiles \\
+        --comparisons $comparisons \\
+        --groups $groups \\
+        $comprehensive
+      """
+  }
