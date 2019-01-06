@@ -112,9 +112,18 @@ try {
             "============================================================"
 }
 
-process convertToMethylKit {    
+process listDirectories {
   input:
   file indir from indir
+
+  output:
+  file "$indir/*" into me_dirs
+
+}
+
+process convertToMethylKit {    
+  input:
+  file indir from me_dirs
 
   output:
   file "${indir.baseName}.CG.mk" into cg_file
