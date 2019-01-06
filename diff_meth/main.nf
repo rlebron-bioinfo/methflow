@@ -121,12 +121,7 @@ try {
 if(params.flatten){
     process flattenInputDirectories {
         publishDir path: { params.saveIntermediates ? "${params.outdir}" : params.outdir },
-          saveAs: {filename ->
-            if (filename.indexOf(".CG.output") > 0) "$filename"
-            else if (filename.indexOf(".CHG.output") > 0) "$filename"
-            else if (filename.indexOf(".CHH.output") > 0) "$filename"
-            else params.saveTrimmed ? filename : null
-          }, mode: 'copy'
+          saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
 
         input:
         file indir from indir.collect()
@@ -156,9 +151,10 @@ if(params.flatten){
         script:
         """
         mkdir flat_input
-        cp `find $indir -name \"*CG.output\"` flat_input/
-        cp `find $indir -name \"*CHG.output\"` flat_input/
-        cp `find $indir -name \"*CHH.output\"` flat_input/
+        cd $indir
+        cp `find . -name \"*CG.output\"` ../flat_input/
+        cp `find . -name \"*CHG.output\"` ../flat_input/
+        cp `find . -name \"*CHH.output\"` ../flat_input/
         """
     }
 }
