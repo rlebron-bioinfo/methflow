@@ -24,8 +24,8 @@ params.groups = false
 
 if( params.indir ){
   indir = Channel
-    .fromPath(params.indir, checkIfExists: true)
-    .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
+  .fromFilePairs( params.indir, checkIfExists: true, size: 1 )
+  .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
 } else {
   exit 1, "No input directory specified!"
 }
@@ -112,11 +112,9 @@ try {
             "============================================================"
 }
 
-indirs = file(params.indir).list()
-
 process convertToMethylKit {    
   input:
-  file indir from indirs
+  file indir from indir
 
   output:
   file "${indir.baseName}.CG.mk" into cg_file
