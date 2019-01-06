@@ -112,15 +112,6 @@ try {
             "============================================================"
 }
 
-process listDirectories {
-  input:
-  file indir from indir
-
-  output:
-  file "$indir/*"
-
-}
-
 process convertToMethylKit {    
   input:
   file indir from me_dirs
