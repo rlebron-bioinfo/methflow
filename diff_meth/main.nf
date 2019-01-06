@@ -174,7 +174,7 @@ if(params.flatten){
         saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
 
       input:
-      file infile from methylation_profiles
+      file infile from methylation_profiles.flatten()
 
       output:
       file "*.sorted" into sorted_methylation_profiles
@@ -194,7 +194,7 @@ if(params.flatten){
         saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
 
       input:
-      file infile from sorted_methylation_profiles
+      file infile from sorted_methylation_profiles.flatten()
 
       output:
       file "*.mk" into methylkit_profiles
