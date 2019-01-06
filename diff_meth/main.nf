@@ -24,8 +24,8 @@ params.groups = false
 
 if( params.indir ){
   indir = Channel
-  .fromPath(params.indir, checkIfExists: true)
-  .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
+    .fromPath(params.indir, checkIfExists: true)
+    .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
 } else {
   exit 1, "No input directory specified!"
 }
@@ -49,8 +49,8 @@ if ( params.groups ){
 if ( params.clusters ){
   if ( params.fasta ){
       fasta = Channel
-          .fromPath(params.fasta, checkIfExists: true)
-          .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
+        .fromPath(params.fasta, checkIfExists: true)
+        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
   } else {
       exit 1, "No Fasta reference specified! This is required by GenomeCluster."
   }
@@ -114,7 +114,7 @@ try {
 
 process convertToMethylKit {    
   input:
-  file indir from indir
+  file indir from indir.collect().list()
 
   output:
   file "${indir.baseName}.CG.mk" into cg_file
