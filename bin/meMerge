@@ -43,7 +43,7 @@ def main(indir, outdir, comprehensive):
                     i = open(os.path.join(root, f), 'rt')
                     for l in i:
                         if not l.startswith('#'):
-                            chrom, pos, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
+                            chrom, pos, context, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
                             ID = f'{pos}@{chrom}'
                             w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = list(map(int, [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]))
                             if ID not in cg:
@@ -59,7 +59,7 @@ def main(indir, outdir, comprehensive):
                     i = open(os.path.join(root, f), 'rt')
                     for l in i:
                         if not l.startswith('#'):
-                            chrom, pos, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
+                            chrom, pos, context, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
                             ID = f'{pos}@{chrom}'
                             w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = list(map(int, [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]))
                             if ID not in chg:
@@ -75,7 +75,7 @@ def main(indir, outdir, comprehensive):
                     i = open(os.path.join(root, f), 'rt')
                     for l in i:
                         if not l.startswith('#'):
-                            chrom, pos, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
+                            chrom, pos, context, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
                             ID = f'{pos}@{chrom}'
                             w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = list(map(int, [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]))
                             if ID not in chh:
@@ -89,19 +89,19 @@ def main(indir, outdir, comprehensive):
                                 chh[ID][4] += c_cove
         cg_outfile = open(os.path.join(outdir, 'CG.output'), 'wt')
         for ID in cg:
-            line = ID.split('@')[::-1] + list(map(int, cg[ID]))
+            line = ID.split('@')[::-1] + ['CG'] + list(map(int, cg[ID]))
             line = '\t'.join(list(map(str, line))) + '\n'
             cg_outfile.write(line)
         cg_outfile.close()
         chg_outfile = open(os.path.join(outdir, 'CHG.output'), 'wt')
         for ID in chg:
-            line = ID.split('@')[::-1] + list(map(int, chg[ID]))
+            line = ID.split('@')[::-1] + ['CHG'] + list(map(int, chg[ID]))
             line = '\t'.join(list(map(str, line))) + '\n'
             chg_outfile.write(line)
         chg_outfile.close() 
         chh_outfile = open(os.path.join(outdir, 'CHH.output'), 'wt')
         for ID in chh:
-            line = ID.split('@')[::-1] + list(map(int, chh[ID]))
+            line = ID.split('@')[::-1] + ['CHH'] + list(map(int, chh[ID]))
             line = '\t'.join(list(map(str, line))) + '\n'
             chh_outfile.write(line)
         chh_outfile.close() 
@@ -114,7 +114,7 @@ def main(indir, outdir, comprehensive):
                     i = open(os.path.join(root, f), 'rt')
                     for l in i:
                         if not l.startswith('#'):
-                            chrom, pos, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
+                            chrom, pos, context, w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = l.replace('.', '0').strip().split('\t')
                             ID = f'{pos}@{chrom}'
                             w_meth, w_cove, w_qual, c_meth, c_cove, c_qual = list(map(int, [w_meth, w_cove, w_qual, c_meth, c_cove, c_qual]))
                             if ID not in cg:
@@ -128,7 +128,7 @@ def main(indir, outdir, comprehensive):
                                 cg[ID][4] += c_cove
         cg_outfile = open(os.path.join(outdir, 'CG.output'), 'wt')
         for ID in cg:
-            line = ID.split('@')[::-1] + list(map(int, cg[ID]))
+            line = ID.split('@')[::-1] + ['CG'] + list(map(int, cg[ID]))
             line = '\t'.join(list(map(str, line))) + '\n'
             cg_outfile.write(line)
         cg_outfile.close() 
