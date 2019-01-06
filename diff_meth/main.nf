@@ -149,11 +149,18 @@ if(params.flatten){
         file "flat_input/*" into methylation_profiles
 
         script:
-        """
-        mkdir flat_input
-        cp `find -L $indir -name \"*CG.output\"` flat_input/
-        cp `find -L $indir -name \"*CHG.output\"` flat_input/
-        cp `find -L $indir -name \"*CHH.output\"` flat_input/
-        """
+        if (params.comprehensive) {
+          """
+          mkdir flat_input
+          cp `find -L $indir -name \"*CG.output\"` flat_input/
+          cp `find -L $indir -name \"*CHG.output\"` flat_input/
+          cp `find -L $indir -name \"*CHH.output\"` flat_input/
+          """
+        } else {
+          """
+          mkdir flat_input
+          cp `find -L $indir -name \"*CG.output\"` flat_input/
+          """
+        }
     }
 }
