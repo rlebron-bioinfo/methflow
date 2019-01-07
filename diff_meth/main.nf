@@ -311,7 +311,7 @@ if(params.flatten){
 * STEP 6 - Prepare Assembly
 */
 
-if(params.flatten){
+if(params.clusters){
     process prepareAssembly {
         publishDir path: { params.saveIntermediates ? "${params.outdir}/assembly" : params.outdir },
           saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
