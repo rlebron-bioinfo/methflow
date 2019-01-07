@@ -11,7 +11,7 @@ parser.add_argument('-o', '--outfile', help='MethylExtract Output File', action=
 parser.add_argument('-c', '--context', help='Methylation Context', action='store', type=str, choices=['CG', 'CHG', 'CHH'], required=True)
 args = vars(parser.parse_args())
 
-HEADER = '#CHROM\tPOS\tCONTEXT\tWatson METH\tWatson COVERAGE\tWatson QUAL\tCrick METH\tCrick COVERAGE\tCrick QUAL'
+HEADER = '#CHROM\tPOS\tCONTEXT\tWatson METH\tWatson COVERAGE\tWatson QUAL\tCrick METH\tCrick COVERAGE\tCrick QUAL\n'
 
 with open(args['infile'],'rt') as i:
 	with open(args['outfile'],'wt') as o:
@@ -35,6 +35,7 @@ with open(args['infile'],'rt') as i:
 				else:
 					row[6] = meth
 					row[7] = coverage
+				data[ID] = row
 		for ID in data:
 			row = list(map(str, data[ID]))
 			row = '\t'.join(row) + '\n'
