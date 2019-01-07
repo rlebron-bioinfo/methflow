@@ -325,8 +325,9 @@ if(params.clusters){
 
         script:
         """
+        mkdir chroms
         N.py --infile $fasta --outfile ${fasta.baseName}.N.bed
-
+        split_multifasta.pl --input_file $fasta --output_dir chroms
         """
     }
 }
