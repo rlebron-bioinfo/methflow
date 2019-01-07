@@ -280,7 +280,7 @@ if(params.flatten){
       file config from comparisons_files.flatten()
 
       output:
-      file "*" into dmcs
+      file "**/*.dm" into dmcs
 
       script:
       """

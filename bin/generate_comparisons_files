@@ -106,13 +106,16 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
         for group_1 in comparisons_dict:
             if comparisons_dict[group_1]:
                 for group_2 in comparisons_dict[group_1]:
+                    group_G = max(group_1, group_2)
+                    group_L = min(group_1, group_2)
+
                     data = {
                         'path' : [],
                         'id' : [],
                         'assembly' : 'assembly',
                         'groups' : [],
                         'context' : 'CNN',
-                        'output' : f'{group_1}_{group_2}_CG',
+                        'output' : f'{group_G}_{group_L}_CG',
                         'minCoverage' : min_coverage,
                         'minDiffMeth' : min_diffmeth,
                         'minQvalue' : qval
@@ -125,7 +128,7 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
                         data['path'].append(f'{indir}/{sample}.CG.mk')
                         data['id'].append(sample)
                         data['groups'].append(group_2)
-                    json.dump(data, open(f'{outdir}/{group_1}_{group_2}_CG.json', 'wt'))
+                    json.dump(data, open(f'{outdir}/{group_G}_{group_L}_CG.json', 'wt'))
 
                     data = {
                         'path' : [],
@@ -133,7 +136,7 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
                         'assembly' : 'assembly',
                         'groups' : [],
                         'context' : 'CNN',
-                        'output' : f'{group_1}_{group_2}_CHG',
+                        'output' : f'{group_G}_{group_L}_CHG',
                         'minCoverage' : min_coverage,
                         'minDiffMeth' : min_diffmeth,
                         'minQvalue' : qval
@@ -146,7 +149,7 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
                         data['path'].append(f'{indir}/{sample}.CHG.mk')
                         data['id'].append(sample)
                         data['groups'].append(group_2)
-                    json.dump(data, open(f'{outdir}/{group_1}_{group_2}_CHG.json', 'wt'))
+                    json.dump(data, open(f'{outdir}/{group_G}_{group_L}_CHG.json', 'wt'))
 
                     data = {
                         'path' : [],
@@ -154,7 +157,7 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
                         'assembly' : 'assembly',
                         'groups' : [],
                         'context' : 'CNN',
-                        'output' : f'{group_1}_{group_2}_CHH',
+                        'output' : f'{group_G}_{group_L}_CHH',
                         'minCoverage' : min_coverage,
                         'minDiffMeth' : min_diffmeth,
                         'minQvalue' : qval
@@ -167,19 +170,22 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
                         data['path'].append(f'{indir}/{sample}.CHH.mk')
                         data['id'].append(sample)
                         data['groups'].append(group_2)
-                    json.dump(data, open(f'{outdir}/{group_1}_{group_2}_CHH.json', 'wt'))
+                    json.dump(data, open(f'{outdir}/{group_G}_{group_L}_CHH.json', 'wt'))
 
     else:
         for group_1 in comparisons_dict:
             if comparisons_dict[group_1]:
                 for group_2 in comparisons_dict[group_1]:
+                    group_G = max(group_1, group_2)
+                    group_L = min(group_1, group_2)
+
                     data = {
                         'path' : [],
                         'id' : [],
                         'assembly' : 'assembly',
                         'groups' : [],
                         'context' : 'CNN',
-                        'output' : f'{group_1}_{group_2}_CG',
+                        'output' : f'{group_G}_{group_L}_CG',
                         'minCoverage' : min_coverage,
                         'minDiffMeth' : min_diffmeth,
                         'minQvalue' : qval
@@ -192,7 +198,7 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
                         data['path'].append(f'{indir}/{sample}.CG.mk')
                         data['id'].append(sample)
                         data['groups'].append(group_2)
-                    json.dump(data, open(f'{outdir}/{group_1}_{group_2}_CG.json', 'wt'))
+                    json.dump(data, open(f'{outdir}/{group_G}_{group_L}_CG.json', 'wt'))
 
 
 def abort():
