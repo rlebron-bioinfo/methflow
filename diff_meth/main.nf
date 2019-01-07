@@ -299,7 +299,7 @@ if(params.flatten){
       file dm from dmcs.flatten()
 
       output:
-      file "*.bed" into dmcs_bedfiles
+      file "*.bed" into dm_bedfiles
 
       script:
       """
