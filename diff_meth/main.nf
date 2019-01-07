@@ -231,7 +231,10 @@ if(params.flatten){
 
   process generateComparisonsFiles {
       publishDir path: { params.saveIntermediates ? "${params.outdir}/generate_comparisons_files" : params.outdir },
-        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+        saveAs: { filename ->
+                if (filename.indexOf(".json") > 0) "json/$filename"
+                else null
+        }, mode: 'copy'
 
       input:
       file profiles from methylkit_profiles.collect()
@@ -264,3 +267,65 @@ if(params.flatten){
         --qval ${params.qval}
       """
   }
+
+/*
+ * STEP 4 - Find Differentially Methylated Cytosines
+ */
+
+  process findDMC {
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/DMCs" : params.outdir },
+        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+      input:
+      file profiles from profiles_dir.collect()
+      file config from comparisons_files.flatten()
+
+      output:
+      file "*" into dmcs
+
+      script:
+      """
+      calculate_diff_meth $config ${task.cpus}
+      """
+  }
+
+/*
+  * STEP 5 - Convert to BED
+
+  process convertToBed {
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/sorted_methylation_profiles" : params.outdir },
+        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+      input:
+      file infile from methylation_profiles.flatten()
+
+      output:
+      file "*.sorted" into sorted_methylation_profiles
+
+      script:
+      """
+      meSort --input $infile --output ${infile}.sorted --file
+      """
+  }
+
+
+ * STEP 6 - Find Differentially Methylated Regions
+
+if(params.flatten){
+    process findDMR {
+        publishDir path: { params.saveIntermediates ? "${params.outdir}/sorted_methylation_profiles" : params.outdir },
+          saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+        input:
+        file infile from methylation_profiles.flatten()
+
+        output:
+        file "*.sorted" into sorted_methylation_profiles
+
+        script:
+        """
+        meSort --input $infile --output ${infile}.sorted --file
+        """
+    }
+}
+*/
