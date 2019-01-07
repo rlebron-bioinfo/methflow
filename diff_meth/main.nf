@@ -303,7 +303,7 @@ if(params.flatten){
 
       script:
       """
-      dmcToBed $dm ${dm.baseName}.bed
+      dmToBed $dm ${dm.baseName}.bed
       """
   }
 
@@ -334,7 +334,7 @@ if(params.clusters){
 /*
  * STEP 7 - Find Differentially Methylated Regions
 
-if(params.flatten){
+if(params.clusters){
     process findDMR {
         publishDir "${params.outdir}/qualimap", mode: 'copy'
 
