@@ -16,27 +16,17 @@
  */
 
 params.indir = false
-params.comparisons = false
-params.groups = false
 
-/*
+
 // Validate inputs
-if( params.bismark_index ){
-    bismark_index = Channel
-        .fromPath(params.bismark_index, checkIfExists: true)
-        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index}" }
-}
-if ( params.fasta ){
-    fasta = Channel
-        .fromPath(params.fasta, checkIfExists: true)
-        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
-}
-else {
-    exit 1, "No Fasta reference specified! This is required by MethylExtract."
-}
 
-multiqc_config = file(params.multiqc_config)
-*/
+if( params.indir ){
+  indir = Channel
+    .fromPath(params.indir, checkIfExists: true)
+    .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
+} else {
+  exit 1, "No input directory specified!"
+}
 
 // Has the run name been specified by the user?
 //  this has the bonus effect of catching both -name and --name
@@ -55,11 +45,15 @@ summary['Pipeline Version'] = params.version
 summary['Run Name']       = custom_runName ?: workflow.runName
 summary['Input dir'] = params.indir
 summary['Comparisons'] = params.comparisons
-if (params.groups) summary['Groups'] = params.groups
+summary['Groups'] = params.groups
+summary['Flatten'] = params.flatten ? 'Yes' : 'No'
 summary['Clusters'] = params.clusters ? 'Yes' : 'No'
+if (params.clusters) summary['Fasta Ref'] = params.fasta
+summary['Minimal Coverage'] = params.minCoverage
 summary['Minimal Diff Meth'] = params.minDiffMeth
 summary['Q-value threshold'] = params.qval
 summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
+summary['Save Intermeds'] = params.saveIntermediates ? 'Yes' : 'No'
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
 summary['Max Time']       = params.max_time
@@ -93,16 +87,221 @@ try {
 }
 
 /*
- * 
-
-if(params.reads){
-    Channel
-    .fromFilePairs( params.reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
-    .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nIf this is single-end data, please specify --singleEnd on the command line." }
-    .into { read_files_fastqc; read_files_trimming }
-} else {
-    exit 1, "Cannot find any FASTQ file. Please use --reads argument."
-}
-
+ * STEP 0 - Flatten Input Directories
  */
 
+if(params.flatten){
+    process flattenInputDirectories {
+        publishDir path: { params.saveIntermediates ? "${params.outdir}" : params.outdir },
+          saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+        input:
+        file indir from indir.collect()
+
+        output:
+        file "flat_input/*" into methylation_profiles
+
+        script:
+        if (params.comprehensive) {
+          """
+          meFlatten --indir $indir --outdir flat_input --comprehensive
+          """
+        } else {
+          """
+          meFlatten --indir $indir --outdir flat_input --no-comprehensive
+          """
+        }
+    }
+} else {
+    process getInputDirectories {
+        input:
+        file indir from indir.collect()
+
+        output:
+        file "flat_input/*" into methylation_profiles
+
+        script:
+        if (params.comprehensive) {
+          """
+          mkdir flat_input
+          cp `find -L $indir -name \"*CG.output\"` flat_input/
+          cp `find -L $indir -name \"*CHG.output\"` flat_input/
+          cp `find -L $indir -name \"*CHH.output\"` flat_input/
+          """
+        } else {
+          """
+          mkdir flat_input
+          cp `find -L $indir -name \"*CG.output\"` flat_input/
+          """
+        }
+    }
+}
+
+/*
+ * STEP 1 - Sort methylation profiles
+ */
+
+  process sortMethylationProfile {
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/sorted_methylation_profiles" : params.outdir },
+        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+      input:
+      file infile from methylation_profiles.flatten()
+
+      output:
+      file "*.sorted" into sorted_methylation_profiles
+
+      script:
+      """
+      meSort --input $infile --output ${infile}.sorted --file
+      """
+  }
+
+/*
+ * STEP 2 - Convert to methylKit
+ */
+
+  process convertToMethylKit {
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/methylKit_profiles" : params.outdir },
+        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+      input:
+      file infile from sorted_methylation_profiles.flatten()
+
+      output:
+      file "*.mk" into methylkit_profiles
+
+      script:
+      """
+      #!/usr/bin/env python3
+
+      import os, shlex
+      from subprocess import Popen, PIPE
+
+      infile = \"${infile}\"
+      outfile = infile.replace(\".output.sorted\", \".mk\")
+
+      if infile.endswith(\"CG.output.sorted\"):
+        cmd = f\"meToMethylKit --infile {infile} --outfile {outfile} --context CG --destrand\"
+      elif infile.endswith(\"CHG.output.sorted\"):
+        cmd = f\"meToMethylKit --infile {infile} --outfile {outfile} --context CHG\"
+      elif infile.endswith(\"CHH.output.sorted\"):
+        cmd = f\"meToMethylKit --infile {infile} --outfile {outfile} --context CHH\"
+      else:
+        raise Exception(\"Unknown context!\")
+
+      p = Popen(shlex.split(cmd), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+      out, err = p.communicate()
+      if p.returncode != 0:
+        raise Exception(\"Conversion failed!\")
+      """
+  }
+
+/*
+ * STEP 3 - Generate Comparisons Files
+ */
+
+  process generateComparisonsFiles {
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/comparisons_files" : params.outdir },
+        saveAs: { filename ->
+                if (filename.indexOf(".json") > 0) "json/$filename"
+                else null
+        }, mode: 'copy'
+
+      input:
+      file profiles from methylkit_profiles.collect()
+
+      output:
+      file "profiles" into profiles_dir
+      file "*.json" into comparisons_files
+
+      script:
+      if (params.comprehensive) {
+        comprehensive = '--comprehensive'
+      } else {
+        comprehensive = '--no-comprehensive'
+      }
+
+      """
+      mkdir profiles
+      cp $profiles profiles/
+
+      mkdir {F,R}_profiles
+
+      i=0
+      for F in profiles/*
+      do
+        head -n 1 $F > F_profiles/F_${F}
+        head -n 1 $F > R_profiles/R_${F}
+        grep -P \"\\tF\\t\" $F >> F_profiles/F_${F}
+        grep -P \"\\tR\\t\" $F >> R_profiles/R_${F}
+        F_basename = F_${F%.C*.mk}
+        R_basename = R_${F%.C*.mk}
+        i=$(($i+1))
+        j=$i
+        echo \"$F_basename\\t$i\" >> ../_groups.txt
+        i=$(($i+1))
+        echo \"$R_basename\\t$i\" >> ../_groups.txt
+        echo \"$i\\t$j\\tX\" >> ../_comparisons.txt
+      done
+
+      rm -r profiles/*
+      mv F_profiles/* profiles/
+      mv R_profiles/* profiles/
+      rm -r {F,R}_profiles
+
+      sort -k1,1 -k2,2 _groups.txt | uniq > groups.txt
+      sort -k1,1 -k2,2 -k3,3 _comparisons.txt | uniq > comparisons.txt
+      rm _groups.txt _comparisons.txt
+
+      generate_comparisons_files \\
+        --indir profiles \\
+        --comparisons comparisons.txt \\
+        --groups groups.txt \\
+        $comprehensive \\
+        --outdir . \\
+        --ignore-diagonal \\
+        --min-coverage ${params.minCoverage} \\
+        --min-diffmeth ${params.minDiffMeth} \\
+        --qval ${params.qval}
+      """
+  }
+
+/*
+ * STEP 4 - Find Hemimethylated Positions
+ */
+
+  process findHemiMeth {
+      publishDir "${params.outdir}/HemiMeth", mode: 'copy'
+
+      input:
+      file profiles from profiles_dir.collect()
+      file config from comparisons_files.flatten()
+
+      output:
+      file "**/*.dm" into hemimeth
+
+      script:
+      """
+      calculate_diff_meth $config ${task.cpus}
+      """
+  }
+
+/*
+ * STEP 5 - Convert to BED
+ */
+
+  process convertToBed {
+      publishDir "${params.outdir}/HemiMeth/bedFiles", mode: 'copy'
+
+      input:
+      file dm from hemimeth.flatten()
+
+      output:
+      file "*.bed" into hm_bedfiles
+
+      script:
+      """
+      dmToBed $dm ${dm.baseName}.bed
+      """
+  }
