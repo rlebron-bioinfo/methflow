@@ -26,3 +26,4 @@ dependencies:
   - conda-forge::libjpeg-turbo=2.0.1
   - bioconda::perl-getopt-long=2.50
   - bioconda::perl-pod-usage=1.69
+  - conda-forge::libiconv=1.15
