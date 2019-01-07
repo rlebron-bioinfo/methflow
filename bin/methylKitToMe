@@ -38,4 +38,4 @@ with open(args['infile'],'rt') as i:
 		for ID in data:
 			row = list(map(str, data[ID]))
 			row = '\t'.join(row) + '\n'
-		o.write(row)
+			o.write(row)
