@@ -289,42 +289,49 @@ if(params.flatten){
   }
 
 /*
-  * STEP 5 - Convert to BED
+ * STEP 5 - Convert to BED
+ */
 
   process convertToBed {
-      publishDir "${params.outdir}/qualimap", mode: 'copy'
+      publishDir "${params.outdir}/DMCs/bedFiles", mode: 'copy'
 
       input:
-      file infile from methylation_profiles.flatten()
+      file dm from dmcs.flatten()
 
       output:
-      file "*.sorted" into sorted_methylation_profiles
+      file "*.bed" into dmcs_bedfiles
 
       script:
       """
-      meSort --input $infile --output ${infile}.sorted --file
+      dmcToBed $dm ${dm.baseName}.bed
       """
   }
 
- * STEP 6 - Prepare Assembly
+/*
+* STEP 6 - Prepare Assembly
+*/
 
 if(params.flatten){
     process prepareAssembly {
-        publishDir "${params.outdir}/qualimap", mode: 'copy'
+        publishDir path: { params.saveIntermediates ? "${params.outdir}/assembly" : params.outdir },
+          saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
 
         input:
-        file infile from methylation_profiles.flatten()
+        file fasta from fasta
 
         output:
-        file "*.sorted" into sorted_methylation_profiles
+        file "*.N.bed" into n_bed
+        file 'chroms' into chroms
 
         script:
         """
-        meSort --input $infile --output ${infile}.sorted --file
+        N.py --infile $fasta --outfile ${fasta.baseName}.N.bed
+
         """
     }
 }
 
+/*
  * STEP 7 - Find Differentially Methylated Regions
 
 if(params.flatten){
