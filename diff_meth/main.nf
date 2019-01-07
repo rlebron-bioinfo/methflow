@@ -306,8 +306,26 @@ if(params.flatten){
       """
   }
 
+ * STEP 6 - Prepare Assembly
 
- * STEP 6 - Find Differentially Methylated Regions
+if(params.flatten){
+    process prepareAssembly {
+        publishDir "${params.outdir}/qualimap", mode: 'copy'
+
+        input:
+        file infile from methylation_profiles.flatten()
+
+        output:
+        file "*.sorted" into sorted_methylation_profiles
+
+        script:
+        """
+        meSort --input $infile --output ${infile}.sorted --file
+        """
+    }
+}
+
+ * STEP 7 - Find Differentially Methylated Regions
 
 if(params.flatten){
     process findDMR {
