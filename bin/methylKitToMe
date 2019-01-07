@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+#version 1.0
+#author: Ricardo Lebron
+#email: rlebron@ugr.es
+
+import argparse
+
+parser = argparse.ArgumentParser(description='Convert from methylKit Input File to MethylExtract Output File')
+parser.add_argument('-i', '--infile', help='methylKit Input File', action='store', type=str, required=True)
+parser.add_argument('-o', '--outfile', help='MethylExtract Output File', action='store', type=str, required=True)
+parser.add_argument('-c', '--context', help='Methylation Context', action='store', type=str, choices=['CG', 'CHG', 'CHH'], required=True)
+args = vars(parser.parse_args())
+
+HEADER = '#CHROM\tPOS\tCONTEXT\tWatson METH\tWatson COVERAGE\tWatson QUAL\tCrick METH\tCrick COVERAGE\tCrick QUAL'
+
+with open(args['infile'],'rt') as i:
+	with open(args['outfile'],'wt') as o:
+		o.write(HEADER)
+		data = dict()
+		for line in i:
+			if not line.startswith('chrBase'):
+				ID, chrom, pos, strand, coverage, freqC, freqT = line.strip().split('\t')
+				coverage = int(coverage)
+				freqC = float(freqC)
+				meth = int(freqC * coverage)
+				if strand == 'R':
+					__pos = int(pos) - 1 if args['context'] == 'CG' else int(pos) - 2
+					ID = f'{chrom}.{__pos}'
+				else:
+					__pos = int(pos)
+				row = data.get(ID, [chrom, __pos, args['context'], '.', '.', '.', '.', '.', '.'])
+				if strand == 'F':
+					row[3] = meth
+					row[4] = coverage
+				else:
+					row[6] = meth
+					row[7] = coverage
+		for ID in data:
+			row = list(map(str, data[ID]))
+			row = '\t'.join(row) + '\n'
+		o.write(row)
