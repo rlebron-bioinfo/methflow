@@ -32,13 +32,16 @@ def readlines(meFile):
         if not line.startswith('#'):
             yield line.rstrip('\n').split('\t')
 
-def convertlines(lines):
+def convertlines(lines, context):
     for line in lines:
         chrom, pos, context = line[0], int(line[1]), line[2]
         methW, coverageW, qualW = fixnull(line[3]), fixnull(line[4]), fixnull(line[5])
         methC, coverageC, qualC = fixnull(line[6]), fixnull(line[7]), fixnull(line[8])        
         startW, endW = pos-1, pos
-        startC, endC = pos, pos+1
+        if context == "CG":
+            startC, endC = pos, pos+1
+        else:
+            startC, endC = pos+1, pos+2
         name = '.'
         scoreW = np.clip(coverageW, 0, 1000)
         scoreC = np.clip(coverageC, 0, 1000)
@@ -54,18 +57,19 @@ def convertlines(lines):
         for line in linesWC:
             yield line
 
-def writelines(lines, bedMethylFile):
-    lines = convertlines(lines)
+def writelines(lines, context, bedMethylFile):
+    lines = convertlines(lines, context)
     for line in lines:
         bedMethylFile.write('\t'.join(line) + '\n')
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--context', help='Methylation Context', action='store', type=str, choices=['CG', 'CHG', 'CHH'], required=True)
     parser.add_argument('meFile', type=argparse.FileType('rt'))
     parser.add_argument('bedMethylFile', type=argparse.FileType('wt'))
     args = parser.parse_args()    
     lines = readlines(args.meFile)
-    writelines(lines, args.bedMethylFile)
+    writelines(lines, args.context, args.bedMethylFile)
 
 if __name__ == '__main__':
     main()

@@ -120,6 +120,8 @@ process convertToMethylExtract {
 
     script:
     """
-    bedMethylToMe $infile ${infile%.bed}.output
+    context=${infile%.bed}
+    context=${infile##*.}
+    bedMethylToMe --context $context $infile ${infile%.bed}.output
     """
 }

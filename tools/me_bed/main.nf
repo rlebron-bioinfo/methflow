@@ -162,6 +162,8 @@ if(params.flatten){
 
       script:
       """
-      meToMethylKit $infile ${infile%.output.sorted}.bed
+      context=${infile%.output.sorted}
+      context=${infile##*.}
+      meToMethylKit --context $context $infile ${infile%.output.sorted}.bed
       """
   }

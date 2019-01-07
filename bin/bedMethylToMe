@@ -29,9 +29,9 @@ def readlines(bedMethylFile):
             break
         yield [lineW, lineC]
 
-def convertlines(lines):
+def convertlines(lines, context):
     for lineW, lineC in lines:
-        chrom, pos, context = lineW[0], lineC[1], 'CG'
+        chrom, pos, context = lineW[0], lineC[1], context
         methW, coverageW, = meth(lineW[9], lineW[10])
         qualW = '.'   
         methC, coverageC, = meth(lineC[9], lineC[10])
@@ -46,19 +46,20 @@ def convertlines(lines):
             line += C
             yield line
 
-def writelines(lines, meFile):
-    lines = convertlines(lines)
+def writelines(lines, context, meFile):
+    lines = convertlines(lines, context)
     for line in lines:
         meFile.write('\t'.join(line) + '\n')
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--context', help='Methylation Context', action='store', type=str, choices=['CG', 'CHG', 'CHH'], required=True)
     parser.add_argument('bedMethylFile', type=argparse.FileType('rt'))
     parser.add_argument('meFile', type=argparse.FileType('wt'))
     args = parser.parse_args()
     header(args.meFile)
     lines = readlines(args.bedMethylFile)
-    writelines(lines, args.meFile)
+    writelines(lines, args.context, args.meFile)
 
 if __name__ == '__main__':
     main()
