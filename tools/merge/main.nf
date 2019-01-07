@@ -16,27 +16,18 @@
  */
 
 params.indir = false
-params.comparisons = false
-params.groups = false
 
-/*
+
 // Validate inputs
-if( params.bismark_index ){
-    bismark_index = Channel
-        .fromPath(params.bismark_index, checkIfExists: true)
-        .ifEmpty { exit 1, "Bismark index not found: ${params.bismark_index}" }
-}
-if ( params.fasta ){
-    fasta = Channel
-        .fromPath(params.fasta, checkIfExists: true)
-        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
-}
-else {
-    exit 1, "No Fasta reference specified! This is required by MethylExtract."
+
+if( params.indir ){
+  indir = Channel
+    .fromPath(params.indir, checkIfExists: true)
+    .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
+} else {
+  exit 1, "No input directory specified!"
 }
 
-multiqc_config = file(params.multiqc_config)
-*/
 
 // Has the run name been specified by the user?
 //  this has the bonus effect of catching both -name and --name
@@ -50,15 +41,11 @@ MethFlow - diff_meth: DNA Methylation (BS-Seq) Analysis Pipeline v${params.versi
 ========================================================================"""
 
 def summary = [:]
-summary['Pipeline Name']  = 'MethFlow - diff_meth'
+summary['Pipeline Name']  = 'MethFlow - tools'
 summary['Pipeline Version'] = params.version
 summary['Run Name']       = custom_runName ?: workflow.runName
 summary['Input dir'] = params.indir
-summary['Comparisons'] = params.comparisons
-if (params.groups) summary['Groups'] = params.groups
-summary['Clusters'] = params.clusters ? 'Yes' : 'No'
-summary['Minimal Diff Meth'] = params.minDiffMeth
-summary['Q-value threshold'] = params.qval
+summary['Flatten'] = params.flatten ? 'Yes' : 'No'
 summary['All C Contexts'] = params.comprehensive ? 'Yes' : 'No'
 summary['Max Memory']     = params.max_memory
 summary['Max CPUs']       = params.max_cpus
@@ -93,16 +80,79 @@ try {
 }
 
 /*
- * 
-
-if(params.reads){
-    Channel
-    .fromFilePairs( params.reads, checkIfExists: true, size: params.singleEnd ? 1 : 2 )
-    .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nIf this is single-end data, please specify --singleEnd on the command line." }
-    .into { read_files_fastqc; read_files_trimming }
-} else {
-    exit 1, "Cannot find any FASTQ file. Please use --reads argument."
-}
-
+ * STEP 0 - Flatten Input Directories
  */
 
+if(params.flatten){
+    process flattenInputDirectories {
+        publishDir path: { params.saveIntermediates ? "${params.outdir}" : params.outdir },
+          saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+        input:
+        file indir from indir.collect()
+
+        output:
+        file "flat_input/*" into methylation_profiles
+
+        script:
+        if (params.comprehensive) {
+          """
+          meFlatten --indir $indir --outdir flat_input --comprehensive
+          """
+        } else {
+          """
+          meFlatten --indir $indir --outdir flat_input --no-comprehensive
+          """
+        }
+    }
+} else {
+    process getInputDirectories {
+        input:
+        file indir from indir.collect()
+
+        output:
+        file "flat_input/*" into methylation_profiles
+
+        script:
+        if (params.comprehensive) {
+          """
+          mkdir flat_input
+          cp `find -L $indir -name \"*CG.output\"` flat_input/
+          cp `find -L $indir -name \"*CHG.output\"` flat_input/
+          cp `find -L $indir -name \"*CHH.output\"` flat_input/
+          """
+        } else {
+          """
+          mkdir flat_input
+          cp `find -L $indir -name \"*CG.output\"` flat_input/
+          """
+        }
+    }
+}
+
+/*
+ * STEP 1 - Merge methylation profiles
+ */
+
+  process mergeMethylationProfile {
+      publishDir "${params.outdir}", mode: 'copy'
+      
+      input:
+      file indir from methylation_profiles.collect()
+
+      output:
+      file "merged_methylation_profiles" into merged_methylation_profiles
+
+      script:
+      if (params.comprehensive) {
+        """
+        mkdir merged_methylation_profiles
+        meMerge --indir $indir --outdir merged_methylation_profiles --comprehensive
+        """
+      } else{
+        """
+        mkdir merged_methylation_profiles
+        meMerge --indir $indir --outdir merged_methylation_profiles --no-comprehensive
+        """
+      }
+  }
