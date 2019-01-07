@@ -55,7 +55,10 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
             labels = labels.split(';')
             for label in labels:
                 label = int(label)
-                groups_dict[label] = sample
+                if label not in groups_dict:
+                    groups_dict[label] = [sample]
+                else:
+                    groups_dict[label].append(sample)
     g_handle.close()
 
     c_handle = open_handle(comparisons, mode='rt')
