@@ -273,8 +273,7 @@ if(params.flatten){
  */
 
   process findDMC {
-      publishDir path: { params.saveIntermediates ? "${params.outdir}/DMCs" : params.outdir },
-        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+      publishDir "${params.outdir}/DMCs", mode: 'copy'
 
       input:
       file profiles from profiles_dir.collect()
@@ -293,8 +292,7 @@ if(params.flatten){
   * STEP 5 - Convert to BED
 
   process convertToBed {
-      publishDir path: { params.saveIntermediates ? "${params.outdir}/sorted_methylation_profiles" : params.outdir },
-        saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+      publishDir "${params.outdir}/qualimap", mode: 'copy'
 
       input:
       file infile from methylation_profiles.flatten()
@@ -313,8 +311,7 @@ if(params.flatten){
 
 if(params.flatten){
     process findDMR {
-        publishDir path: { params.saveIntermediates ? "${params.outdir}/sorted_methylation_profiles" : params.outdir },
-          saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+        publishDir "${params.outdir}/qualimap", mode: 'copy'
 
         input:
         file infile from methylation_profiles.flatten()
