@@ -21,7 +21,7 @@ with open(args['infile'],'rt') as i:
 			if not line.startswith('chrBase'):
 				ID, chrom, pos, strand, coverage, freqC, freqT = line.strip().split('\t')
 				coverage = int(coverage)
-				freqC = float(freqC)
+				freqC = float(freqC)/100
 				meth = int(freqC * coverage)
 				if strand == 'R':
 					__pos = int(pos) - 1 if args['context'] == 'CG' else int(pos) - 2
