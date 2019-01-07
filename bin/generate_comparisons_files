@@ -33,8 +33,11 @@ logger.addHandler(logfile)
 @click.option('--ignore-upper/--no-ignore-upper', is_flag=True, default=False)
 @click.option('--ignore-diagonal/--no-ignore-diagonal', is_flag=True, default=True)
 @click.option('--ignore-lower/--no-ignore-lower', is_flag=True, default=False)
+@click.option('--min-coverage', default=10, type=click.IntRange(min=1, max=None, clamp=False))
+@click.option('--min-diffmeth', default=25, type=click.IntRange(min=0, max=100, clamp=False))
+@click.option('--qval', default=0.01, type=click.FloatRange(min=0, max=1, clamp=False))
 @click.version_option(version=version)
-def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore_diagonal, ignore_lower):
+def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore_diagonal, ignore_lower, min_coverage, min_diffmeth, qval):
     if os.path.isfile(outdir):
         abort()
     elif not os.path.exists(outdir):
@@ -51,6 +54,7 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
             sample, labels = row
             labels = labels.split(';')
             for label in labels:
+                label = int(label)
                 groups_dict[label] = sample
     g_handle.close()
 
@@ -92,6 +96,98 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
                     comparisons_dict[row_label].add(col_label)
     
     c_handle.close()
+
+    if comprehensive:
+        for group_1 in comparisons_dict:
+            if comparisons_dict[group_1]:
+                for group_2 in comparisons_dict[group_1]:
+                    data = {
+                        'path' : [],
+                        'id' : [],
+                        'assembly' : 'assembly',
+                        'groups' : [],
+                        'context' : 'CNN',
+                        'output' : f'{group_1}_{group_2}_CG',
+                        'minCoverage' : min_coverage,
+                        'minDiffMeth' : min_diffmeth,
+                        'minQvalue' : qval
+                    }
+                    for sample in groups_dict[group_1]:
+                        data['path'].append(f'{indir}/{sample}.CG.mk')
+                        data['id'].append(sample)
+                        data['groups'].append(group_1)
+                    for sample in groups_dict[group_2]:
+                        data['path'].append(f'{indir}/{sample}.CG.mk')
+                        data['id'].append(sample)
+                        data['groups'].append(group_2)
+                    json.dump(data, open(f'{outdir}/{group_1}_{group_2}_CG.json', 'wt'))
+
+                    data = {
+                        'path' : [],
+                        'id' : [],
+                        'assembly' : 'assembly',
+                        'groups' : [],
+                        'context' : 'CNN',
+                        'output' : f'{group_1}_{group_2}_CHG',
+                        'minCoverage' : min_coverage,
+                        'minDiffMeth' : min_diffmeth,
+                        'minQvalue' : qval
+                    }
+                    for sample in groups_dict[group_1]:
+                        data['path'].append(f'{indir}/{sample}.CHG.mk')
+                        data['id'].append(sample)
+                        data['groups'].append(group_1)
+                    for sample in groups_dict[group_2]:
+                        data['path'].append(f'{indir}/{sample}.CHG.mk')
+                        data['id'].append(sample)
+                        data['groups'].append(group_2)
+                    json.dump(data, open(f'{outdir}/{group_1}_{group_2}_CHG.json', 'wt'))
+
+                    data = {
+                        'path' : [],
+                        'id' : [],
+                        'assembly' : 'assembly',
+                        'groups' : [],
+                        'context' : 'CNN',
+                        'output' : f'{group_1}_{group_2}_CHH',
+                        'minCoverage' : min_coverage,
+                        'minDiffMeth' : min_diffmeth,
+                        'minQvalue' : qval
+                    }
+                    for sample in groups_dict[group_1]:
+                        data['path'].append(f'{indir}/{sample}.CHH.mk')
+                        data['id'].append(sample)
+                        data['groups'].append(group_1)
+                    for sample in groups_dict[group_2]:
+                        data['path'].append(f'{indir}/{sample}.CHH.mk')
+                        data['id'].append(sample)
+                        data['groups'].append(group_2)
+                    json.dump(data, open(f'{outdir}/{group_1}_{group_2}_CHH.json', 'wt'))
+
+    else:
+        for group_1 in comparisons_dict:
+            if comparisons_dict[group_1]:
+                for group_2 in comparisons_dict[group_1]:
+                    data = {
+                        'path' : [],
+                        'id' : [],
+                        'assembly' : 'assembly',
+                        'groups' : [],
+                        'context' : 'CNN',
+                        'output' : f'{group_1}_{group_2}_CG',
+                        'minCoverage' : min_coverage,
+                        'minDiffMeth' : min_diffmeth,
+                        'minQvalue' : qval
+                    }
+                    for sample in groups_dict[group_1]:
+                        data['path'].append(f'{indir}/{sample}.CG.mk')
+                        data['id'].append(sample)
+                        data['groups'].append(group_1)
+                    for sample in groups_dict[group_2]:
+                        data['path'].append(f'{indir}/{sample}.CG.mk')
+                        data['id'].append(sample)
+                        data['groups'].append(group_2)
+                    json.dump(data, open(f'{outdir}/{group_1}_{group_2}_CG.json', 'wt'))
 
 
 def abort():

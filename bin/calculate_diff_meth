@@ -2,8 +2,14 @@
 
 args = commandArgs(trailingOnly = TRUE)
 
-if (length(args) != 1) {
+if (length(args) == 0) {
   stop("config.json required!", call. = FALSE)
+}
+
+if (length(args) >= 2) {
+  cores <- as.integer(args[2])
+} else {
+  cores <- 16
 }
 
 library(methylKit)
@@ -15,7 +21,6 @@ sample.id <- as.list(data$id)
 assembly <- data$assembly
 treatment <- data$groups
 context <- data$context
-cores <- data$cores
 output <- data$output
 lo.count <- data$minCoverage
 difference <- data$minDiffMeth
@@ -39,6 +44,7 @@ filtered.myobj = filterByCoverage(
 
 meth = unite(filtered.myobj, destrand = FALSE)
 
+dir.create(output, showWarnings = FALSE)
 setwd(output)
 
 if (length(file.list) >= 3) {

@@ -239,6 +239,7 @@ if(params.flatten){
       file groups from groups
 
       output:
+      file "profiles" into profiles_dir
       file "*.json" into comparisons_files
 
       script:
@@ -256,6 +257,10 @@ if(params.flatten){
         --comparisons $comparisons \\
         --groups $groups \\
         $comprehensive \\
-        --outdir .
+        --outdir . \\
+        --ignore-diagonal \\
+        --min-coverage ${params.minCoverage} \\
+        --min-diffmeth ${params.minDiffMeth} \\
+        --qval ${params.qval}
       """
   }
