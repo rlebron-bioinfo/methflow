@@ -308,8 +308,8 @@ if(params.flatten){
   }
 
 /*
-* STEP 6 - Prepare Assembly
-*/
+ * STEP 6 - Prepare Assembly
+ */
 
 if(params.clusters){
     process prepareAssembly {
@@ -334,21 +334,23 @@ if(params.clusters){
 
 /*
  * STEP 7 - Find Differentially Methylated Regions
+ */
 
 if(params.clusters){
     process findDMR {
-        publishDir "${params.outdir}/qualimap", mode: 'copy'
+        publishDir "${params.outdir}/DMRs", mode: 'copy'
 
         input:
-        file infile from methylation_profiles.flatten()
+        file dm from dm_bedfiles.flatten()
+        file n_bed from n_bed
+        file assembly from chroms.collect()
 
         output:
-        file "*.sorted" into sorted_methylation_profiles
+        file "*" into clusters_files
 
         script:
         """
-        meSort --input $infile --output ${infile}.sorted --file
+        GenomeCluster.pl start $dm gi 1E-5 $assembly $n_bed 0
         """
     }
 }
-*/
