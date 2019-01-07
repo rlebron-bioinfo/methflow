@@ -31,8 +31,8 @@ def main():
     parser.add_argument('dmcFile', type=argparse.FileType('rt'))
     parser.add_argument('bedFile', type=argparse.FileType('wt'))
     args = parser.parse_args()    
-    lines = readlines(args.meFile)
-    writelines(lines, args.bedMethylFile)
+    lines = readlines(args.dmcFile)
+    writelines(lines, args.bedFile)
 
 if __name__ == '__main__':
     main()
