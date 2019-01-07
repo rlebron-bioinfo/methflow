@@ -1,0 +1,35 @@
+#!/usr/bin/env Rscript
+
+args = commandArgs(trailingOnly = TRUE)
+
+if (length(args) == 0) {
+  stop("methylKit methylation profile required!", call. = FALSE)
+}
+
+if (length(args) >= 2) {
+  context <- args[2]
+} else {
+  context <- "CG"
+}
+
+library(methylKit)
+
+data <- args[1]
+
+myobj = methRead(
+  list(data),
+  sample.id = list(basename(data)),
+  assembly = "assembly",
+  treatment = c(0),
+  context = context
+)
+
+plot.file <- paste(basename(data), context, "coveragePlot", sep = ".")
+pdf(plot.file)
+getCoverageStats(myobj[[1]], plot=TRUE, both.strands=FALSE)
+dev.off()
+
+plot.file <- paste(basename(data), context, "coveragePlot", "bothStrands", sep = ".")
+pdf(plot.file)
+getCoverageStats(myobj[[1]], plot=TRUE, both.strands=TRUE)
+dev.off()
