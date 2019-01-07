@@ -12,7 +12,7 @@ split_multifasta.pl - split a single FASTA file containing multiple sequences in
 =head1 SYNOPSIS
 
 USAGE: split_multifasta.pl 
-            --input_file=/path/to/some_file.fsa 
+            --input_file=/path/to/some_file.fa 
             --output_dir=/path/to/somedir
           [ --output_list=/path/to/somefile.list 
             --output_subdir_size=1000
@@ -91,13 +91,13 @@ output files.
 =head1  OUTPUT
 
 The name of each output sequence file is pulled from the FASTA header of that sequence.  The
-first *word* after the > symbol will be used as the file name, along with the extension .fsa.
+first *word* after the > symbol will be used as the file name, along with the extension .fa.
 The word is defined as all the text after the > symbol up to the first whitespace.
 
 If the above example were your input file, two files would be created:
 
-    gi53791237.fsa
-    gi15387669.fsa
+    gi53791237.fa
+    gi15387669.fa
 
 Any characters other than a-z A-Z 0-9 . _ - in the ID will be changed into an
 underscore.  This only occurs in the file name; the original FASTA header within the file
@@ -146,7 +146,7 @@ Finally, you can write multiple sequences to each output file using the --seqs_p
 can be used along with --outupt_subdir_size and --output_subdir_prefix.  The main difference to note
 is that, if you use --seqs_per_file, the fasta file created will no longer be named using values
 taken from the header, since it will contain multiple headers.  Instead, the file will simply be
-named using sequential numbers starting at 1 (like 1.fsa).  For example: 
+named using sequential numbers starting at 1 (like 1.fa).  For example: 
 
     --output_dir=/some/path
     --output_subdir_size=3000
@@ -338,7 +338,7 @@ sub writeSequence {
     }
     
     ## did the user ask for a file prefix?
-    my $filepath = "$dirpath/$id.fsa";
+    my $filepath = "$dirpath/$id.fa";
     
     ## take any // out of the filepath
     $filepath =~ s|/+|/|g;
