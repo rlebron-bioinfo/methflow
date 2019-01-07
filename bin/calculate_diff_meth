@@ -78,8 +78,8 @@ myDiff = calculateDiffMeth(
 myDiff.hyper = getMethylDiff(myDiff, difference = difference, qvalue = qvalue, type = "hyper")
 myDiff.hypo = getMethylDiff(myDiff, difference = difference, qvalue = qvalue, type = "hypo")
 
-hyper_meth.file = paste(basename(output), hyper_meth.dm, sep = ".")
-hypo_meth.file = paste(basename(output), hypo_meth.dm, sep = ".")
+hyper_meth.file = paste(basename(output), "hyper_meth.dm", sep = ".")
+hypo_meth.file = paste(basename(output), "hypo_meth.dm", sep = ".")
 
 write.table(
   myDiff.hyper,
