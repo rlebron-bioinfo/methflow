@@ -27,3 +27,4 @@ dependencies:
   - bioconda::perl-getopt-long=2.50
   - bioconda::perl-pod-usage=1.69
   - conda-forge::libiconv=1.15
+  - conda-forge::xorg-libx11=1.6.6
