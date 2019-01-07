@@ -1,72 +1,38 @@
 #!/usr/bin/env python3
 
 import argparse
-import numpy as np
 
-def color(meth):
-    '''
-    usage: color(meth)
-  
-    input:
-    meth (float): percentage of reads that show methylation at this position in the genome [0, 100]
-  
-    output:
-    color (str): red [0, 255], green [0, 255], blue [0, 255] bedMethyl color values
-    '''
-    bins = np.array([5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 100])
-    meth_bin = np.digitize(np.array([meth]), bins, right = True)[0]
-    R_bin = np.clip(meth_bin, 0, 5)
-    G_bin = np.clip(10 - meth_bin, 0, 5)
-    R = 50 * R_bin + 5 if R_bin != 0 else 0
-    G = 50 * G_bin + 5 if G_bin != 0 else 0
-    return ",".join(map(str, [R, G, 0]))
+def color(methdiff):
+    R, G = 0, 0
+    B = int((float(methdiff)/1.0) * 255)
+    return ",".join(map(str, [R, G, B]))
 
-def methratio(meth, coverage):
-    return int(100*(float(meth)/float(coverage))) if coverage else 0
-
-def fixnull(value):
-    return int(value) if value.isnumeric() else 0
-
-def readlines(meFile):
-    for line in meFile:
-        if not line.startswith('#'):
+def readlines(dmcFile):
+    for line in dmcFile:
+        if not line.startswith('chr\t'):
             yield line.rstrip('\n').split('\t')
 
 def convertlines(lines):
     for line in lines:
-        chrom, pos, context = line[0], int(line[1]), line[2]
-        methW, coverageW, qualW = fixnull(line[3]), fixnull(line[4]), fixnull(line[5])
-        methC, coverageC, qualC = fixnull(line[6]), fixnull(line[7]), fixnull(line[8])        
-        startW, endW = pos-1, pos
-        startC, endC = pos, pos+1
-        name = '.'
-        scoreW = np.clip(coverageW, 0, 1000)
-        scoreC = np.clip(coverageC, 0, 1000)
-        strandW = '+'
-        strandC = '-'
-        methratioW = methratio(methW, coverageW)
-        methratioC = methratio(methC, coverageC)
-        colorW = color(methratioW)
-        colorC = color(methratioC)
-        lineW = map(str, [chrom, startW, endW, name, scoreW, strandW, startW, endW, colorW, coverageW, methratioW])
-        lineC = map(str, [chrom, startC, endC, name, scoreC, strandC, startC, endC, colorC, coverageC, methratioC])
-        linesWC = [lineW, lineC]
-        for line in linesWC:
-            yield line
+        nline, chrom, start, end, strand, pval, qval, methdiff = line
+        del nline
+        score = str(int((float(qval)/1.0) * 1000))
+        dm_color = color(methdiff)
+        line = [chrom, start, end, f'{chrom}_{start}_{end}', score, strand, start, end, dm_color, pval, qval, methdiff]
+        yield line
 
-def writelines(lines, bedMethylFile):
+def writelines(lines, bedFile):
     lines = convertlines(lines)
     for line in lines:
-        bedMethylFile.write('\t'.join(line) + '\n')
+        bedFile.write('\t'.join(line) + '\n')
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('meFile', type=argparse.FileType('rt'))
-    parser.add_argument('bedMethylFile', type=argparse.FileType('wt'))
+    parser.add_argument('dmcFile', type=argparse.FileType('rt'))
+    parser.add_argument('bedFile', type=argparse.FileType('wt'))
     args = parser.parse_args()    
     lines = readlines(args.meFile)
     writelines(lines, args.bedMethylFile)
 
 if __name__ == '__main__':
     main()
-

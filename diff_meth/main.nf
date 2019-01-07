@@ -230,7 +230,7 @@ if(params.flatten){
  */
 
   process generateComparisonsFiles {
-      publishDir path: { params.saveIntermediates ? "${params.outdir}/generate_comparisons_files" : params.outdir },
+      publishDir path: { params.saveIntermediates ? "${params.outdir}/comparisons_files" : params.outdir },
         saveAs: { filename ->
                 if (filename.indexOf(".json") > 0) "json/$filename"
                 else null
