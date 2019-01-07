@@ -71,18 +71,18 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
                 break
         for n_row, row in enumerate(c_reader):
             if len(row) > 1:
-                row_label = row[0]
+                row_label = int(row[0])
                 if row_label not in comparisons_dict:
                     comparisons_dict[row_label] = set()
                 for n_col, col in enumerate(row[1:]):
-                    col_label = cols[n_col]
+                    col_label = int(cols[n_col])
                     if col_label not in comparisons_dict:
                         comparisons_dict[col_label] = set()
-                    if all([row_label == col_label, not ignore_diagonal]):
+                    if all([row_label == col_label, not ignore_diagonal, bool(col)]):
                         comparisons_dict[row_label].add(col_label)
-                    elif all([n_row < n_col, not ignore_upper]):
+                    elif all([n_row < n_col, not ignore_upper, bool(col)]):
                         comparisons_dict[row_label].add(col_label)
-                    elif all([n_row > n_col, not ignore_lower]):
+                    elif all([n_row > n_col, not ignore_lower, bool(col)]):
                         comparisons_dict[col_label].add(row_label)
 
     else:
@@ -90,9 +90,11 @@ def main(indir, outdir, comparisons, groups, comprehensive, ignore_upper, ignore
         for row in c_reader:
             if len(row) > 1 and not row[0].startswith('#'):
                 row_label, col_label, value = row
+                row_label = int(row_label)
+                col_label = int(col_label)
                 if row_label not in comparisons_dict:
                     comparisons_dict[row_label] = set()
-                if all([bool(value), row_label not in comparisons_dict.get(col_label, set())]):
+                if all([row_label not in comparisons_dict.get(col_label, set()), bool(value)]):
                     comparisons_dict[row_label].add(col_label)
     
     c_handle.close()
