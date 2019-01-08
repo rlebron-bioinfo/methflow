@@ -280,11 +280,12 @@ if(params.flatten){
       file config from comparisons_files.flatten()
 
       output:
-      file "**/*.dm" into dmcs
+      file "*.dm" into dmcs
 
       script:
       """
       calculate_diff_meth $config ${task.cpus}
+      mv `find -L ./*/ -name \"*.dm\"` .
       """
   }
 
