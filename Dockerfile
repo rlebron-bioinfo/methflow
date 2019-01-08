@@ -26,6 +26,7 @@ RUN apt-get update \
     && conda install --yes -c conda-forge ncurses=6.1 \
     && conda install --yes -c anaconda gcc_linux-64=7.3.0 gxx_linux-64=7.3.0 gfortran_linux-64=7.3.0 \
     && conda install --yes -c bioconda perl-gd=2.69 perl-gdgraph=1.54 \
+    && conda install --yes -c conda-forge xorg-libx11=1.6.6 \
     && conda clean -y --all \
     && /opt/conda/opt/gatk-3.8/gatk3-register.sh /root/GenomeAnalysisTK.jar \
     && /opt/conda/bin/cpanm inc::latest \
