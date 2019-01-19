@@ -70,8 +70,8 @@ if (length(file.list) >= 3) {
 myDiff = calculateDiffMeth(
   meth,
   overdispersion = "none",
-  adjust = "SLIM",
-  slim = TRUE,
+  adjust = "BH",
+  slim = FALSE,
   weighted.mean = TRUE,
   mc.cores = cores
 )
