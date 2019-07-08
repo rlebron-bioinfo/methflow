@@ -16,6 +16,8 @@
  */
 
 params.indir = false
+params.comparisons = false
+params.groups = false
 
 
 // Validate inputs
@@ -26,6 +28,32 @@ if( params.indir ){
     .ifEmpty { exit 1, "Input directory not found: ${params.indir}" }
 } else {
   exit 1, "No input directory specified!"
+}
+
+if ( params.comparisons ){
+  comparisons = Channel
+    .fromPath(params.comparisons, checkIfExists: true)
+    .ifEmpty { exit 1, "Comparisons file not found: ${params.comparisons}" }
+} else {
+  exit 1, "No comparisons file specified!"
+}
+
+if ( params.groups ){
+  groups = Channel
+    .fromPath(params.groups, checkIfExists: true)
+    .ifEmpty { exit 1, "Groups file not found: ${params.groups}" }
+} else {
+  exit 1, "No groups file specified!"
+}
+
+if ( params.clusters ){
+  if ( params.fasta ){
+      fasta = Channel
+        .fromPath(params.fasta, checkIfExists: true)
+        .ifEmpty { exit 1, "Fasta file not found: ${params.fasta}" }
+  } else {
+      exit 1, "No Fasta reference specified! This is required by GenomeCluster."
+  }
 }
 
 // Has the run name been specified by the user?
@@ -210,6 +238,8 @@ if(params.flatten){
 
       input:
       file profiles from methylkit_profiles.collect()
+      file comparisons from comparisons
+      file groups from groups
 
       output:
       file "profiles" into profiles_dir
@@ -225,39 +255,10 @@ if(params.flatten){
       """
       mkdir profiles
       cp $profiles profiles/
-
-      mkdir {F,R}_profiles
-
-      i=0
-      for F in profiles/*
-      do
-        head -n 1 $F > F_profiles/F_${F}
-        head -n 1 $F > R_profiles/R_${F}
-        grep -P \"\\tF\\t\" $F >> F_profiles/F_${F}
-        grep -P \"\\tR\\t\" $F >> R_profiles/R_${F}
-        F_basename = F_${F%.C*.mk}
-        R_basename = R_${F%.C*.mk}
-        i=$(($i+1))
-        j=$i
-        echo \"$F_basename\\t$i\" >> ../_groups.txt
-        i=$(($i+1))
-        echo \"$R_basename\\t$i\" >> ../_groups.txt
-        echo \"$i\\t$j\\tX\" >> ../_comparisons.txt
-      done
-
-      rm -r profiles/*
-      mv F_profiles/* profiles/
-      mv R_profiles/* profiles/
-      rm -r {F,R}_profiles
-
-      sort -k1,1 -k2,2 _groups.txt | uniq > groups.txt
-      sort -k1,1 -k2,2 -k3,3 _comparisons.txt | uniq > comparisons.txt
-      rm _groups.txt _comparisons.txt
-
       generate_comparisons_files \\
         --indir profiles \\
-        --comparisons comparisons.txt \\
-        --groups groups.txt \\
+        --comparisons $comparisons \\
+        --groups $groups \\
         $comprehensive \\
         --outdir . \\
         --ignore-diagonal \\
@@ -268,22 +269,23 @@ if(params.flatten){
   }
 
 /*
- * STEP 4 - Find Hemimethylated Positions
+ * STEP 4 - Find Differentially Methylated Cytosines
  */
 
-  process findHemiMeth {
-      publishDir "${params.outdir}/HemiMeth", mode: 'copy'
+  process findDMC {
+      publishDir "${params.outdir}/DMCs", mode: 'copy'
 
       input:
       file profiles from profiles_dir.collect()
       file config from comparisons_files.flatten()
 
       output:
-      file "**/*.dm" into hemimeth
+      file "*.dm" into dmcs
 
       script:
       """
       calculate_diff_meth $config ${task.cpus}
+      mv `find -L ./*/ -name \"*.dm\"` .
       """
   }
 
@@ -292,16 +294,64 @@ if(params.flatten){
  */
 
   process convertToBed {
-      publishDir "${params.outdir}/HemiMeth/bedFiles", mode: 'copy'
+      publishDir "${params.outdir}/DMCs/bedFiles", mode: 'copy'
 
       input:
-      file dm from hemimeth.flatten()
+      file dm from dmcs.flatten()
 
       output:
-      file "*.bed" into hm_bedfiles
+      file "*.bed" into dm_bedfiles
 
       script:
       """
       dmToBed $dm ${dm.baseName}.bed
       """
   }
+
+/*
+ * STEP 6 - Prepare Assembly
+ */
+
+if(params.clusters){
+    process prepareAssembly {
+        publishDir path: { params.saveIntermediates ? "${params.outdir}/assembly" : params.outdir },
+          saveAs: { params.saveIntermediates ? it : null }, mode: 'copy'
+
+        input:
+        file fasta from fasta
+
+        output:
+        file "*.N.bed" into n_bed
+        file 'chroms' into chroms
+
+        script:
+        """
+        mkdir chroms
+        N.py --infile $fasta --outfile ${fasta.baseName}.N.bed
+        split_multifasta.pl --input_file $fasta --output_dir chroms
+        """
+    }
+}
+
+/*
+ * STEP 7 - Find Differentially Methylated Regions
+ */
+
+if(params.clusters){
+    process findDMR {
+        publishDir "${params.outdir}/DMRs", mode: 'copy'
+
+        input:
+        file dm from dm_bedfiles.flatten()
+        file n_bed from n_bed
+        file assembly from chroms.collect()
+
+        output:
+        file "*" into clusters_files
+
+        script:
+        """
+        GenomeCluster.pl start $dm gi 1E-5 $assembly $n_bed 0
+        """
+    }
+}
